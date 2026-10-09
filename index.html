@@ -129,6 +129,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .cog .rest{padding:2px 4px 0 106px;color:var(--muted);font-size:12px}
 @media (max-width:600px){.sig{grid-template-columns:80px minmax(0,1fr)}.sig .nv{grid-column:2;justify-content:flex-start}.sig .nv b{min-width:0;text-align:left}.cog .rest{padding-left:4px}}
 .stat .k{display:flex;gap:10px;font-size:12.5px;margin-top:1px}
+.sig.cmt{grid-template-columns:62px minmax(0,1fr) 0}
+.sig.cmt .dt{color:var(--muted);font-size:12px;align-self:start;padding-top:2px}
+.sig.cmt .txt{font-size:13.5px;color:var(--ink)}
 .stat.lead{border-color:var(--line-2)}
 .sec{margin-top:16px}
 .ph .side{font-size:11.5px;color:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:0 6px;margin-right:6px;font-weight:600;vertical-align:2px}
@@ -246,9 +249,9 @@ details.sub>summary small{color:var(--muted);font-weight:400}
 @media (prefers-reduced-motion:no-preference){.rev,.mrow{transition:background .12s}}
 </style>
 <script>
-window.__LEDGER_STATIC = true; window.__LEDGER_BUILT = "2026-10-09 19:02";
+window.__LEDGER_STATIC = true; window.__LEDGER_BUILT = "2026-10-09 19:19";
 (function(){
-  var P = fetch('data/ledger.json?v=' + "202610091902").then(function(r){ return r.json(); });
+  var P = fetch('data/ledger.json?v=' + "202610091919").then(function(r){ return r.json(); });
   var no = function(){ return Promise.reject({code: 'not_granted'}); };
   function coll(name){
     return { orderBy: function(){ return this; }, limit: function(){ return this; },
@@ -336,6 +339,7 @@ function descOf(m){ if (!m) return ''; if (m.desc) return m.desc; const code = c
 const descHtml = m => { const d = descOf(m); return d ? `<span class="desc">${esc(d)}</span>` : ''; };
 // 종목(회사 실적·추정) / 품목·산업(가격·수요·시장 규모·월매출·수출). 대만 월매출은 공급망 지표라 품목 쪽
 const coCode = m => m.code || (/^co-(\d{6})-/.exec(m.id || '') || [])[1] || '';
+const enOf = m => (S.aliasById[m.id] || {}).en || '';
 const sideOf = m => m && m.kind === '실적·추정' && m.board !== '대만 월매출' ? 'co' : 'it';
 function coOf(m){
   const code = coCode(m);
@@ -393,7 +397,7 @@ const S = {
   metricDocs: new Map(), entries: new Map(), got: {m: false, e: false},
   M: new Map(), P: [], ser: new Map(), serByM: new Map(), revs: [], cross: [], consNow: null,
   view: 'stocks', detail: null, group: '전체', q: '', win: 30, kind: '전체', mside: 'it',
-  evTypeC: '전체', evTypeI: '전체', evNC: 10, evNI: 10, feedNC: 12, feedNI: 12, nameByCode: {},
+  evTypeC: '전체', evTypeI: '전체', evNC: 10, evNI: 10, feedNC: 12, feedNI: 12, nameByCode: {}, aliasById: {}, notes: [], notesByM: new Map(), noteNC: 8, noteNI: 8,
   showCons: false, showCross: false, feedN: 60, descByCode: {}, screens: [], gapSector: '전체', gapSort: 'g', gapDir: -1, gapCall: '전체', evType: '전체', evN: 12, events: [], evByM: new Map(), consItem: '영업이익', consYear: null,
   src: {}, editMetric: false, openEntry: null, confirm: null, rawN: 120,
   draft: null, images: [], extracting: null, inText: '', inAsOf: '', inVia: ''
@@ -450,6 +454,15 @@ function derive(){
       if (best && best.v !== f.v) cross.push({m: f.m, p: f.p, src: f.src, st: f.st, from: best.v, to: f.v, fromAsOf: best.asOf, fromSrc: best.src, asOf: f.asOf, pt: f, cross: true});
     }
   }
+  // 코멘트: 숫자로 못 담는 업황·회사 이야기(증설 계획, 고객 선확보, 신제품 출하…). 자료의 notes[{m, t}]
+  const notes = [];
+  for (const e of ents) for (const n of (Array.isArray(e.notes) ? e.notes : [])) {
+    if (!n || !n.m || typeof n.t !== 'string' || !n.t.trim()) continue;
+    notes.push({m: String(n.m), t: n.t.trim(), asOf: n.asOf || e.asOf || '', src: n.src || e.src || '', eid: e.id, url: e.url || ''});
+  }
+  notes.sort((a, b) => a.asOf < b.asOf ? 1 : a.asOf > b.asOf ? -1 : 0);
+  const notesByM = new Map(); for (const n of notes){ let a = notesByM.get(n.m); if (!a) notesByM.set(n.m, a = []); a.push(n); }
+  S.notes = notes; S.notesByM = notesByM;
   let consNow = null;
   for (const pt of P) if (pt.st === '컨센서스' && (!consNow || pt.asOf > consNow)) consNow = pt.asOf;
   Object.assign(S, {M, P, ser, serByM, revs, cross, consNow});
@@ -460,7 +473,9 @@ function valAt(arr, d){ let r = null; if (!arr) return r; for (const p of arr){ 
 const passGroup = m => S.group === '전체' || m.group === S.group;
 function passQ(m, extra = ''){
   if (!S.q) return true;
-  const hay = [m.name, m.entity, m.sub, m.group, m.code, m.id, extra].join(' ').toLowerCase();
+  // 품목 설명(ABF·MLB…), 정의, 영어·한자 이름(Unimicron·GCE·欣興)까지 찾는다
+  const al = S.aliasById[m.id] || {};
+  const hay = [m.name, m.entity, m.sub, m.group, m.code, m.id, descOf(m), m.def, al.en, al.zh, extra].join(' ').toLowerCase();
   return S.q.toLowerCase().split(/\s+/).filter(Boolean).every(w => hay.includes(w));
 }
 
@@ -611,14 +626,14 @@ function sigRow(e, side){
   const pp = m.unit === '%' || (e.type === 'jump' && e.extra);
   const fromTo = e.type === 'jump' && e.extra ? `${fmtNum(e.extra.from, 0)}% → ${fmtNum(e.extra.to, 0)}%` : `${fmtV(e.type === 'jump' ? e.prev.v : e.base.v, m.unit)} → ${fmtV(e.v, m.unit)}`;
   const label = side === 'co' ? itemLabel(m, coOf(m).name) : m.name;
-  const meta = [side === 'it' ? descOf(m) : '', evDesc(e)].filter(Boolean).join(' · ');
+  const meta = [side === 'it' ? enOf(m) : '', side === 'it' ? descOf(m) : '', evDesc(e)].filter(Boolean).join(' · ');
   return `<a class="sig" href="#m-${esc(e.m)}">${evBadge(e)}<span class="lab"><b>${esc(label)}</b><span class="tag">${esc(showP(e.p))}</span><span class="meta">${esc(meta)}</span></span><span class="nv"><small class="num">${esc(fromTo)}</small><b class="num ${dirCls(e.c.d)}">${chgTxt(e.c.d, pp)}</b></span></a>`;
 }
 function revSig(r, side){
   const m = S.M.get(r.m) || {name: r.m, unit: ''};
   const c = change(r.from, r.to, m.unit), cls = dirCls(c.d);
   const label = side === 'co' ? itemLabel(m, coOf(m).name) : m.name;
-  const meta = [side === 'it' ? descOf(m) : '', r.cross ? `${r.src} 첫 값 vs ${r.fromSrc}(${shortDate(r.fromAsOf)})` : `${r.src} · ${shortDate(r.fromAsOf)} → ${shortDate(r.asOf)}`, r.pt.n].filter(Boolean).join(' · ');
+  const meta = [side === 'it' ? enOf(m) : '', side === 'it' ? descOf(m) : '', r.cross ? `${r.src} 첫 값 vs ${r.fromSrc}(${shortDate(r.fromAsOf)})` : `${r.src} · ${shortDate(r.fromAsOf)} → ${shortDate(r.asOf)}`, r.pt.n].filter(Boolean).join(' · ');
   return `<a class="sig" href="#m-${esc(r.m)}"><span class="pill ${cls}">${arrow(c.d)} ${esc(c.txt.replace(/^[+-]/, ''))}</span><span class="lab"><b>${esc(label)}</b><span class="tag">${esc(showP(r.p))}</span>${r.st === '컨센서스' ? '<span class="tag cons">컨센서스</span>' : ''}${r.big ? '<span class="tag big" title="이 지표의 보통 수정폭보다 훨씬 큼">큰 폭</span>' : ''}<span class="meta">${esc(meta)}</span></span><span class="nv"><small class="num">${esc(fmtV(r.from, m.unit))} →</small><b class="num to">${esc(fmtV(r.to, m.unit))}</b></span></a>`;
 }
 // 같은 회사(구간)끼리 묶는다. 최근 날짜가 늦은 묶음부터, 같은 날이면 센 신호가 있는 묶음부터. 묶음마다 4줄까지
@@ -632,6 +647,27 @@ function grouped(list, side, rowFn, score, limit){
   return {n: arr.length, html: arr.slice(0, limit).map(o => `<div class="cog">${grpHead(o, o.rows.length, side)}${o.rows.slice(0, 4).map(x => rowFn(x, side)).join('')}${o.rows.length > 4 ? `<div class="rest">외 ${o.rows.length - 4}건 · ${more}</div>` : ''}</div>`).join('')};
 }
 const evScore = e => e.lv * 1000 + Math.min(999, Math.abs(e.c.d));
+// 코멘트 줄: [날짜] 한 줄 이야기 / 회색 줄(지표·출처)
+function noteRow(n, side){
+  const m = S.M.get(n.m) || {name: n.m};
+  const label = side === 'co' ? itemLabel(m, coOf(m).name) : m.name;
+  return `<a class="sig cmt" href="#m-${esc(n.m)}"><span class="dt num">${shortDate(n.asOf)}</span><span class="lab"><span class="txt">${esc(n.t)}</span><span class="meta">${esc([label, n.src].filter(Boolean).join(' · '))}</span></span><span></span></a>`;
+}
+function notesPanel(side){
+  const ws = windowStart();
+  const list = S.notes.filter(n => { if (n.asOf < ws) return false; const m = S.M.get(n.m); return !!m && sideOf(m) === side && passGroup(m) && passQ(m, n.t + ' ' + n.src); });
+  if (!list.length) return '';
+  const nk = side === 'co' ? 'noteNC' : 'noteNI';
+  const {n, html} = grouped(list, side, noteRow, () => 0, S[nk]);
+  return `<section class="panel sec" aria-labelledby="h-note-${side}"><div class="ph"><h2 id="h-note-${side}">${side === 'co' ? '회사 코멘트' : '업황 코멘트'}</h2><span class="hint">숫자로 담지 못한 이야기 — 증설·고객·신제품·가격 계획(최근 ${winLabel()})</span></div>
+    <div class="grp cols">${html}</div>${n > S[nk] ? `<div class="more"><button class="btn" data-act="evMore" data-k="${nk}">${side === 'co' ? '회사' : '구간'} ${n - S[nk]}곳 더 보기</button></div>` : ''}</section>`;
+}
+function notesSection(m){
+  const list = S.notesByM.get(m.id) || [];
+  if (!list.length) return '';
+  return `<section class="panel" style="margin-top:16px"><div class="ph"><h2>코멘트</h2><span class="hint">숫자 밖의 이야기 ${list.length}건</span></div>
+    <div class="grp">${list.slice(0, 30).map(n => `<div class="sig cmt"><span class="dt num">${shortDate(n.asOf)}</span><span class="lab"><span class="txt">${esc(n.t)}</span><span class="meta">${esc(n.src)}</span></span><span></span></div>`).join('')}</div></section>`;
+}
 function signalsPanel(side, evs){
   const types = SIDE_TYPES[side], tk = side === 'co' ? 'evTypeC' : 'evTypeI', nk = side === 'co' ? 'evNC' : 'evNI';
   const t = (types.find(x => x[0] === S[tk]) || types[0])[1];
@@ -674,6 +710,7 @@ function vStocks(){
     <div class="stat"><div class="lbl">컨센서스 바뀐 종목</div><div class="v num">${coN}</div><div class="k">${udTxt(consR, r => r.to > r.from)}<span class="flat">기준 ${shortDate(S.consNow) || '–'}</span></div></div>
   </div>
   ${signalsPanel('co', evs)}
+  ${notesPanel('co')}
   ${gapCallsPanel()}
   <div class="grid2 sec">${revPanel('co', nonCons, consR)}
     <section class="panel" aria-labelledby="h-brd"><div class="ph"><h2 id="h-brd">업종별 상향·하향</h2><span class="hint">증권사 추정 수정 건수</span></div>${breadth(nonCons)}</section></div>
@@ -694,6 +731,7 @@ function vItems(){
     <div class="stat"><div class="lbl">자동 수집 최신</div><div class="v num" style="font-size:19px">${showP(daily) || '–'}</div><div class="k"><span class="flat">월 자료 ${showP(month) || '–'}</span></div></div>
   </div>
   ${signalsPanel('it', evs)}
+  ${notesPanel('it')}
   ${movesPanel()}
   <div class="sec">${revPanel('it', nonCons, [])}</div>
   <div class="ph sec" style="margin-bottom:0"><h2 style="font-size:17px">가격판</h2><span class="hint">트렌드포스 공개 가격표·대만 월매출·관세청 수출(자동), 자료에서 뽑은 가격 전망</span></div>
@@ -794,7 +832,7 @@ function metricRow(m, last){
 }
 
 // ───────── 가격판: 자동으로 쌓이는 시세·월매출·수출 + 자료에서 뽑은 가격 전망
-const BOARD_ORDER = ['D램 현물', 'D램 모듈', 'D램 고정가', '낸드', '배터리 소재', '한국 수출', '대만 월매출', '자료에서 뽑은 가격'];
+const BOARD_ORDER = ['D램 현물', 'D램 모듈', 'D램 고정가', '낸드', '배터리 소재', '한국 수출', '대만 업종 합계', '대만 월매출', '자료에서 뽑은 가격'];
 function boardStats(m){
   const s = actualSeries(m.id); if (!s.length) return null;
   const last = s[s.length-1], t = pDate(last.p), daily = /^\d{4}-\d{2}-\d{2}$/.test(last.p);
@@ -999,6 +1037,7 @@ function vDetail(){
     <section class="panel"><div class="ph"><h2>기간별 값</h2><span class="hint">실적은 진하게, 추정은 옅게(${esc(sel)} 최신값)</span></div><div id="perChart" class="chart"></div></section>
   </div>` : `<section class="panel"><div class="ph"><h2>값의 흐름</h2><span class="hint">발표·집계된 실적과 시세 ${actualSeries(m.id).length}개</span></div><div id="histChart" class="chart"></div></section>`}
   ${surpriseTable(m)}
+  ${notesSection(m)}
   <section class="panel" style="margin-top:16px"><div class="ph"><h2>출처별 최신값</h2><span class="hint">작은 글씨는 같은 출처의 직전 값 대비</span></div>
     <div class="tw"><table><thead><tr><th>출처</th>${pcols.map(p => `<th class="n">${esc(showP(p))}</th>`).join('')}<th class="n">최근</th></tr></thead><tbody>
     ${piv.map(r => `<tr><td>${esc(r.s)}</td>${pcols.map(p => { const c = r.cells[p]; if (!c) return '<td class="n flat">·</td>'; const ch = c.pr ? change(c.pr.v, c.l.v, m.unit) : null; return `<td class="n num" title="${esc(c.l.asOf)}${c.l.n ? ' · ' + esc(c.l.n) : ''}">${c.l.a ? '<b>' : ''}${esc(fmtV(c.l.v, m.unit))}${c.l.a ? '</b>' : ''}${ch ? `<br><small class="${dirCls(ch.d)}">${arrow(ch.d)}${esc(ch.txt.replace(/^[+-]/, ''))}</small>` : ''}</td>`; }).join('')}<td class="n num">${shortDate(r.last)}</td></tr>`).join('')}
@@ -1489,7 +1528,7 @@ route();
   S.db = db;
   const fail = e => { if (e?.code === 'revoked'){ S.noDb = true; render(); } };
   db.collection('metrics').onSnapshot(snap => { S.metricDocs = new Map(snap.docs.map(d => [d.id, d.data()])); S.got.m = true; schedule(); }, fail);
-  db.doc('info/desc').onSnapshot(d => { const x = (d.exists && d.data()) || {}; S.descByCode = x.byCode || {}; S.nameByCode = x.nameByCode || {}; schedule(); }, fail);
+  db.doc('info/desc').onSnapshot(d => { const x = (d.exists && d.data()) || {}; S.descByCode = x.byCode || {}; S.nameByCode = x.nameByCode || {}; S.aliasById = x.aliasById || {}; schedule(); }, fail);
   db.collection('screens').orderBy('asOf', 'desc').limit(3).onSnapshot(snap => { S.screens = snap.docs.map(d => ({...d.data(), id: d.id})); schedule(); }, fail);
   db.collection('entries').onSnapshot(snap => { S.entries = new Map(snap.docs.map(d => [d.id, {...d.data(), id: d.id}])); S.got.e = true; schedule(); }, fail);
   if (user){ try { S.canWrite = await user.can('data.write'); } catch { S.canWrite = null; } }
