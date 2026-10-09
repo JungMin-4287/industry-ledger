@@ -249,9 +249,9 @@ details.sub>summary small{color:var(--muted);font-weight:400}
 @media (prefers-reduced-motion:no-preference){.rev,.mrow{transition:background .12s}}
 </style>
 <script>
-window.__LEDGER_STATIC = true; window.__LEDGER_BUILT = "2026-10-09 22:29";
+window.__LEDGER_STATIC = true; window.__LEDGER_BUILT = "2026-10-09 23:22";
 (function(){
-  var P = fetch('data/ledger.json?v=' + "202610092229").then(function(r){ return r.json(); });
+  var P = fetch('data/ledger.json?v=' + "202610092322").then(function(r){ return r.json(); });
   var no = function(){ return Promise.reject({code: 'not_granted'}); };
   function coll(name){
     return { orderBy: function(){ return this; }, limit: function(){ return this; },
@@ -458,6 +458,9 @@ function derive(){
   const notes = [];
   for (const e of ents) for (const n of (Array.isArray(e.notes) ? e.notes : [])) {
     if (!n || !n.m || typeof n.t !== 'string' || !n.t.trim()) continue;
+    // 숫자 없이 코멘트만 달린 한국 상장사(co-<코드>-op 등)는 회사 이름으로 지표 자리를 만든다
+    const k = !M.has(n.m) && /^co-(\d{6})-(op|rev|np)(-q)?$/.exec(n.m);
+    if (k){ const nm = S.nameByCode[k[1]] || k[1]; M.set(n.m, {id: n.m, name: `${nm} ${k[3] ? '분기 ' : ''}${ITEM[k[2]]}`, entity: nm, code: k[1], group: '미분류', sub: '기타', unit: '억원', freq: k[3] ? 'Q' : 'Y', kind: '실적·추정', item: ITEM[k[2]]}); }
     notes.push({m: String(n.m), t: n.t.trim(), asOf: n.asOf || e.asOf || '', src: n.src || e.src || '', eid: e.id, url: e.url || ''});
   }
   notes.sort((a, b) => a.asOf < b.asOf ? 1 : a.asOf > b.asOf ? -1 : 0);
@@ -832,7 +835,7 @@ function metricRow(m, last){
 }
 
 // ───────── 가격판: 자동으로 쌓이는 시세·월매출·수출 + 자료에서 뽑은 가격 전망
-const BOARD_ORDER = ['D램 현물', 'D램 모듈', 'D램 고정가', '낸드', '배터리 소재', '한국 수출', '대만 업종 합계', '대만 월매출', '자료에서 뽑은 가격'];
+const BOARD_ORDER = ['D램 현물', 'D램 모듈', 'D램 고정가', '낸드', '배터리 소재', '한국 수출', '일본 전자부품 출하', '대만 업종 합계', '대만 월매출', '자료에서 뽑은 가격'];
 function boardStats(m){
   const s = actualSeries(m.id); if (!s.length) return null;
   const last = s[s.length-1], t = pDate(last.p), daily = /^\d{4}-\d{2}-\d{2}$/.test(last.p);
