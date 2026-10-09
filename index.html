@@ -1,0 +1,1389 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="산업 숫자 장부 — 시장 규모·가격·컨센서스가 언제, 누구 말로, 얼마나 바뀌었는지(읽기 전용 공유본)">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>산업 숫자 장부</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Nanum+Myeongjo:wght@800&display=swap">
+<style>
+/* 장부 레이아웃: 맨 위 요약 줄 → 왼쪽 '수정 기록' 원장, 오른쪽 업종별 상향·하향과 컨센서스 합산. 숫자는 고정폭, 상향=빨강·하향=파랑(국내 시세 관례) */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#151a21; --ink-2:#4b5563; --muted:#7f8892; --line:#e2e6ea; --line-2:#cdd3da;
+  --accent:#1d5e58; --accent-ink:#ffffff; --accent-wash:#e2eeec;
+  --up:#c8323c; --up-wash:#fbe8ea; --down:#2160c4; --down-wash:#e6eefb; --warn:#9a6400; --on-strong:#ffffff;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --font-ui:"IBM Plex Sans KR",system-ui,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,Consolas,"IBM Plex Sans KR","Malgun Gothic",monospace;
+  --font-title:"Nanum Myeongjo","IBM Plex Sans KR","Batang",serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1114; --surface:#161a1f; --ink:#edf0f3; --ink-2:#b4bcc6; --muted:#7c8591; --line:#262c33; --line-2:#363e47;
+    --accent:#62b7ac; --accent-ink:#0b1513; --accent-wash:#15302c;
+    --up:#ff6f6f; --up-wash:#3a1b1d; --down:#6aa6ff; --down-wash:#152439; --warn:#e2a93b; --on-strong:#10131a;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1114; --surface:#161a1f; --ink:#edf0f3; --ink-2:#b4bcc6; --muted:#7c8591; --line:#262c33; --line-2:#363e47;
+  --accent:#62b7ac; --accent-ink:#0b1513; --accent-wash:#15302c;
+  --up:#ff6f6f; --up-wash:#3a1b1d; --down:#6aa6ff; --down-wash:#152439; --warn:#e2a93b; --on-strong:#10131a;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:clamp(16px,3vw,28px);padding-block:18px 64px}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+/* 머리 */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-bottom:14px;border-bottom:1px solid var(--line-2)}
+.brand h1{font-family:var(--font-title);font-weight:800;font-size:clamp(24px,3.2vw,30px);letter-spacing:-.02em;margin:0;line-height:1.15}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:12.5px}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tabs a{text-decoration:none;padding:7px 12px;border-radius:7px;color:var(--ink-2);font-weight:500}
+.tabs a:hover{background:var(--surface)}
+.tabs a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.bar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:12px 0 6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.chip{border:1px solid var(--line-2);background:transparent;border-radius:999px;padding:4px 11px;font-size:13px;cursor:pointer;color:var(--ink-2);white-space:nowrap}
+.chip:hover{border-color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.search{margin-left:auto;display:flex;gap:8px;align-items:center}
+.search input{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;padding:6px 10px;width:min(240px,60vw)}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:4px 10px;cursor:pointer;color:var(--ink-2);font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button+button{border-left:1px solid var(--line-2)}
+
+/* 공통 블록 */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.ph{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 12px;margin-bottom:10px}
+.ph h2{font-size:15px;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+.ph .hint{color:var(--muted);font-size:12.5px}
+.lbl{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.empty{color:var(--ink-2);padding:22px 4px;line-height:1.7}
+.empty b{color:var(--ink)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px;align-items:start}
+.stack{display:grid;gap:16px;min-width:0}
+@media (max-width:920px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.gridc{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:1120px){.gridc{grid-template-columns:minmax(0,1fr)}}
+.ctab td,.ctab th{white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:8px 0 16px}
+@media (max-width:720px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{padding:12px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
+.stat .v{font-size:22px;font-weight:600;letter-spacing:-.02em;margin-top:2px}
+.stat .d{font-size:12.5px;color:var(--ink-2)}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:3px;border-radius:6px;padding:1px 7px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.pill.up{background:var(--up-wash)} .pill.down{background:var(--down-wash)} .pill.flat{background:var(--bg)}
+.pill.strong.up{background:var(--up);color:var(--on-strong)} .pill.strong.down{background:var(--down);color:var(--on-strong)}
+.pill.ev{font-size:11.5px;padding:0 6px;margin-left:4px;vertical-align:1px}
+.tag.big{border-color:var(--warn);color:var(--warn)}
+.evrow{grid-template-columns:118px minmax(0,1fr) auto;gap:4px 14px}
+.evrow .pill{white-space:nowrap;justify-self:start;font-size:12px}
+.desc{color:var(--muted);font-size:12px;font-weight:400;margin-left:5px}
+.evn{display:grid;justify-items:end;gap:1px;text-align:right}
+.evn b{font-size:15px;font-weight:600}
+.evn small{color:var(--muted);font-size:12px;white-space:nowrap}
+@media (max-width:560px){.evrow{grid-template-columns:104px minmax(0,1fr)}.evn{grid-column:2;justify-items:start;text-align:left}}
+.tag{display:inline-block;font-size:11.5px;color:var(--ink-2);border:1px solid var(--line-2);border-radius:5px;padding:0 6px;white-space:nowrap}
+.tag.cons{border-color:transparent;background:var(--accent-wash);color:var(--accent)}
+
+/* 수정 기록 */
+.feed{display:grid}
+.rev{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 4px;border-top:1px solid var(--line);text-decoration:none}
+.rev:first-child{border-top:0}
+.rev:hover{background:var(--bg)}
+.rev .what b{font-weight:600}
+.rev .meta{color:var(--muted);font-size:12.5px}
+.rev .nums{text-align:right;font-size:13px;color:var(--ink-2)}
+.rev .nums .to{color:var(--ink);font-weight:500}
+@media (max-width:560px){.rev{grid-template-columns:78px minmax(0,1fr)}.rev .nums{grid-column:2;text-align:left}}
+.more{margin-top:8px}
+.btn{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--ink-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.danger{color:var(--up);border-color:var(--up)}
+.btn[disabled]{opacity:.55;cursor:default}
+.linkbtn{border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font-weight:500}
+
+/* 업종별 상향·하향 */
+.brd{display:grid;gap:6px}
+.brow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:10px;align-items:center;font-size:13px}
+.brow .nm{min-width:0;overflow-wrap:anywhere}
+.brow .nm small{color:var(--muted)}
+.dv{display:grid;grid-template-columns:1fr 1px 1fr;align-items:center;height:20px}
+.dv .l{display:flex;justify-content:flex-end;align-items:center;gap:5px}
+.dv .r{display:flex;justify-content:flex-start;align-items:center;gap:5px}
+.dv .mid{background:var(--line-2);height:100%}
+.dv i{display:block;height:12px;border-radius:3px}
+.dv .l i{background:var(--down);border-radius:3px 0 0 3px}
+.dv .r i{background:var(--up);border-radius:0 3px 3px 0}
+.dv span{font-size:12px;color:var(--ink-2)}
+
+/* 표 */
+.tw{overflow-x:auto;min-width:0;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-weight:500;color:var(--muted);font-size:12px;white-space:nowrap}
+td.n,th.n{text-align:right}
+tbody tr:hover td{background:var(--bg)}
+td small{color:var(--muted)}
+
+/* 지표 목록 */
+.mgroup{margin-top:18px}
+.mgroup>h3{font-size:16px;margin:0 0 6px;font-weight:600}
+details.sub{border-top:1px solid var(--line-2)}
+details.sub>summary{cursor:pointer;padding:9px 2px;font-weight:500;color:var(--ink-2);list-style-position:inside}
+details.sub>summary small{color:var(--muted);font-weight:400}
+.mrow{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) 92px 96px;gap:10px;align-items:center;padding:8px 4px;border-top:1px solid var(--line);text-decoration:none}
+.mrow:hover{background:var(--surface)}
+.mrow .nm b{font-weight:600}
+.mrow .nm small{display:block;color:var(--muted);font-size:12px}
+.mrow .lv{font-size:13px}
+.mrow .lv small{display:block;color:var(--muted);font-size:11.5px}
+.mrow .dt{color:var(--muted);font-size:12px;text-align:right}
+@media (max-width:640px){.mrow{grid-template-columns:minmax(0,1fr) auto}.mrow .sp,.mrow .dt{display:none}}
+
+/* 상세 */
+.dhead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 20px;align-items:flex-start;margin:6px 0 14px}
+.dhead h2{font-size:clamp(20px,2.6vw,24px);margin:0 0 6px;letter-spacing:-.02em;text-wrap:balance}
+.dhead .tags{display:flex;gap:6px;flex-wrap:wrap}
+.dhead p{margin:8px 0 0;color:var(--ink-2);max-width:68ch}
+.back{display:inline-block;margin-top:8px;color:var(--ink-2);text-decoration:none;font-size:13px}
+.back:hover{color:var(--ink)}
+.chart{position:relative;min-width:0}
+.chart svg{display:block;width:100%;overflow:visible}
+.chart text{font-family:var(--font-num);font-size:11px;fill:var(--muted)}
+.chart .lab{font-family:var(--font-ui);fill:var(--ink-2);font-size:11.5px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--ink-2);margin:0 0 6px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:16px;height:2px;border-radius:2px}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;font-size:12.5px;box-shadow:0 6px 18px rgba(0,0,0,.12);min-width:150px;z-index:5}
+.tip .t{color:var(--muted);font-size:12px;margin-bottom:4px}
+.tip .r{display:flex;justify-content:space-between;gap:14px;align-items:center}
+.tip .r i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.cap{color:var(--muted);font-size:12px;margin-top:6px}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.form label{display:grid;gap:3px;font-size:12px;color:var(--muted)}
+.form input,.form select,.form textarea,.cell input,.cell select{border:1px solid var(--line-2);background:var(--surface);border-radius:7px;padding:6px 8px;color:var(--ink);font-size:13.5px;width:100%;min-width:0}
+.form .wide{grid-column:1/-1}
+
+/* 자료 넣기 */
+.drop{display:grid;gap:10px}
+.drop textarea{width:100%;min-height:190px;border:1px solid var(--line-2);border-radius:10px;padding:12px;background:var(--surface);resize:vertical;line-height:1.6}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.thumbs figure{margin:0;position:relative}
+.thumbs img{width:88px;height:66px;object-fit:cover;border-radius:6px;border:1px solid var(--line-2)}
+.thumbs button{position:absolute;top:-6px;right:-6px;border:0;border-radius:50%;width:20px;height:20px;background:var(--ink);color:var(--bg);cursor:pointer;font-size:12px;line-height:20px;padding:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.status{color:var(--ink-2);font-size:13px}
+.cell{min-width:90px}
+.cell.w{min-width:200px}
+.cell.p{min-width:96px}
+.newm{border:1px dashed var(--line-2);border-radius:10px;padding:12px;display:grid;gap:8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:9px;font-size:13.5px;z-index:20;max-width:calc(100vw - 32px)}
+.note{background:var(--accent-wash);color:var(--ink);border-radius:8px;padding:10px 12px;font-size:13px}
+.warn{color:var(--warn)}
+.confirm{display:inline-flex;gap:6px;align-items:center;font-size:13px}
+.entry{border-top:1px solid var(--line);padding:12px 2px}
+.entry:first-child{border-top:0}
+.entry .eh{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.entry .eh b{font-weight:600}
+.entry .m{color:var(--ink-2);font-size:13px;margin-top:3px}
+@media (prefers-reduced-motion:no-preference){.rev,.mrow{transition:background .12s}}
+</style>
+<script>
+window.__LEDGER_STATIC = true; window.__LEDGER_BUILT = "2026-10-09 12:15";
+(function(){
+  var P = fetch('data/ledger.json?v=' + "202610091215").then(function(r){ return r.json(); });
+  var no = function(){ return Promise.reject({code: 'not_granted'}); };
+  function coll(name){
+    return { orderBy: function(){ return this; }, limit: function(){ return this; },
+      onSnapshot: function(cb){ P.then(function(d){ var o = d[name] || {}; var docs = Object.keys(o).map(function(id){ return {id: id, exists: true, data: function(){ return o[id]; }}; });
+        if (name === 'screens') docs.sort(function(a, b){ return (a.data().asOf < b.data().asOf) ? 1 : -1; });
+        cb({docs: docs, size: docs.length, empty: !docs.length}); }); return function(){}; },
+      doc: function(){ return {set: no, update: no, delete: no}; } };
+  }
+  function doc(p){ return { onSnapshot: function(cb){ P.then(function(d){ var v = (d.docs || {})[p]; cb({exists: !!v, data: function(){ return v; }}); }); return function(){}; } }; }
+  var dl = { save: function(o){ var b = new Blob([o.data], {type: 'text/csv'}); var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = o.filename; document.body.appendChild(a); a.click(); a.remove(); return Promise.resolve({status: 'saved'}); } };
+  window.claude = { use: function(n){ return Promise.resolve(n === 'db' ? {collection: coll, doc: doc} : n === 'user' ? {can: function(){ return Promise.resolve(false); }} : n === 'downloads' ? dl : null); } };
+})();
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>산업 숫자 장부</h1>
+      <p id="stamp">시장 규모·가격·컨센서스가 언제, 누구 말로, 얼마나 바뀌었는지 모아 둔 곳</p>
+    </div>
+    <nav class="tabs" aria-label="화면">
+      <a href="#changes" data-tab="changes">변화</a>
+      <a href="#metrics" data-tab="metrics">지표</a>
+      <a href="#ingest" data-tab="ingest">자료 넣기</a>
+      <a href="#board" data-tab="board">가격판</a>
+      <a href="#gap" data-tab="gap">괴리판</a>
+      <a href="#log" data-tab="log">기록</a>
+    </nav>
+  </header>
+  <div class="bar" id="bar"></div>
+  <main id="main"><div class="empty">장부를 불러오는 중입니다…</div></main>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+(() => {
+'use strict';
+// ───────── 기본 도구
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad2 = n => String(n).padStart(2, '0');
+const localToday = () => { const t = new Date(); return `${t.getFullYear()}-${pad2(t.getMonth()+1)}-${pad2(t.getDate())}`; };
+const toMs = d => Date.parse(d + 'T00:00:00Z');
+const addDays = (d, n) => new Date(toMs(d) + n*864e5).toISOString().slice(0,10);
+const shortDate = d => d ? d.slice(2).replace(/-/g, '.') : '';
+const DAY = 864e5;
+const GROUP_ORDER = ['반도체','AI 인프라','전자부품·기판','전력·에너지','2차전지·소재','기타','미분류'];
+const KINDS = ['시장규모','출하·물량','가격','캐파·가동률','점유율','투자','실적·추정','기타'];
+const STS = ['회사','증권사','리서치','컨센서스','언론','정부·통계','실적','기타'];
+const PERIOD_RE = /^\d{4}(H[12]|Q[1-4]|-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/; // 연·반기·분기·월·일(시세)
+const SERIES = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8'];
+
+function pKey(p){
+  let m;
+  if (/^\d{4}$/.test(p)) return +p;
+  if ((m = /^(\d{4})H([12])$/.exec(p))) return +m[1] + (m[2]==='2' ? .5 : 0);
+  if ((m = /^(\d{4})Q([1-4])$/.exec(p))) return +m[1] + (m[2]-1)/4;
+  if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(p))) return +m[1] + (m[2]-1)/12 + (m[3]-1)/372;
+  if ((m = /^(\d{4})-(\d{2})$/.exec(p))) return +m[1] + (m[2]-1)/12;
+  return 0;
+}
+// 기간을 시간축 위 한 점으로(월은 15일, 분기는 가운데 달)
+function pDate(p){
+  let m;
+  if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(p))) return Date.UTC(+m[1], m[2]-1, +m[3]);
+  if ((m = /^(\d{4})-(\d{2})$/.exec(p))) return Date.UTC(+m[1], m[2]-1, 15);
+  if ((m = /^(\d{4})Q([1-4])$/.exec(p))) return Date.UTC(+m[1], (m[2]-1)*3 + 1, 15);
+  if ((m = /^(\d{4})H([12])$/.exec(p))) return Date.UTC(+m[1], m[2]==='1' ? 3 : 9, 1);
+  if (/^\d{4}$/.test(p)) return Date.UTC(+p, 6, 1);
+  return 0;
+}
+function showP(p){
+  let m;
+  if ((m = /^(\d{4})H([12])$/.exec(p))) return `${m[2]}H${m[1].slice(2)}`;
+  if ((m = /^(\d{4})Q([1-4])$/.exec(p))) return `${m[2]}Q${m[1].slice(2)}`;
+  if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(p))) return `${m[1].slice(2)}.${m[2]}.${m[3]}`;
+  if ((m = /^(\d{4})-(\d{2})$/.exec(p))) return `${m[1].slice(2)}.${m[2]}`;
+  return p;
+}
+const freqOf = p => /H/.test(p) ? 'H' : /Q/.test(p) ? 'Q' : /^\d{4}-\d{2}-\d{2}$/.test(p) ? 'D' : /-/.test(p) ? 'M' : 'Y';
+// 지표의 실적 값만 기간 순으로(같은 기간은 가장 늦게 들어온 값)
+// 회사 주요 품목: 지표에 적힌 것 → 종목코드로 info/desc 문서에서
+function descOf(m){ if (!m) return ''; if (m.desc) return m.desc; const code = m.code || (/^co-(d{6})-/.exec(m.id || '') || [])[1]; return code ? (S.descByCode[code] || '') : ''; }
+const descHtml = m => { const d = descOf(m); return d ? `<span class="desc">${esc(d)}</span>` : ''; };
+function actualSeries(id){
+  const by = new Map();
+  for (const p of S.P) if (p.m === id && p.a){ const o = by.get(p.p); if (!o || p.asOf > o.asOf || (p.asOf === o.asOf && p.added >= o.added)) by.set(p.p, p); }
+  return [...by.values()].sort((a, b) => pDate(a.p) - pDate(b.p));
+}
+function fmtNum(v, digits){
+  const a = Math.abs(v);
+  const d = digits ?? (a >= 100 ? 0 : a >= 10 ? 1 : a >= 1 ? 2 : 3);
+  return v.toLocaleString('ko-KR', {maximumFractionDigits: d});
+}
+function fmtV(v, unit){
+  if (v == null || !isFinite(v)) return '–';
+  const a = Math.abs(v);
+  if (unit === '억원' && a >= 1e4) return fmtNum(v/1e4, 1) + '조원';
+  if (unit === '억달러' && a >= 1e4) return fmtNum(v/1e4, 2) + '조달러';
+  if (!unit) return fmtNum(v);
+  if (unit === '%') return fmtNum(v) + '%';
+  return fmtNum(v) + (/^[$₩]/.test(unit) ? ' ' : '') + (/^[가-힣]/.test(unit) ? '' : ' ') + unit;
+}
+function change(from, to, unit){
+  if (unit === '%') return {d: to - from, txt: (to - from >= 0 ? '+' : '') + fmtNum(to - from, 1) + '%p'};
+  if (!from) return {d: to - from, txt: '새 값'};
+  const c = (to - from) / Math.abs(from) * 100;
+  return {d: c, txt: (c >= 0 ? '+' : '') + fmtNum(c, Math.abs(c) >= 100 ? 0 : Math.abs(c) >= 1 ? 1 : 2) + '%'};
+}
+const dirCls = d => d > 0.0001 ? 'up' : d < -0.0001 ? 'down' : 'flat';
+const arrow = d => d > 0.0001 ? '▲' : d < -0.0001 ? '▼' : '–';
+function axisScale(unit, maxAbs){
+  if (unit === '억원' && maxAbs >= 1e4) return {div: 1e4, unit: '조원'};
+  if (unit === '억달러' && maxAbs >= 1e4) return {div: 1e4, unit: '조달러'};
+  return {div: 1, unit};
+}
+function niceTicks(min, max, n = 4){
+  if (min === max){ const d = Math.abs(min) * .1 || 1; min -= d; max += d; }
+  const step0 = (max - min) / n, mag = Math.pow(10, Math.floor(Math.log10(step0))), f = step0 / mag;
+  const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, t = [];
+  for (let v = lo; v <= hi + step/2; v += step) t.push(+v.toPrecision(12));
+  return {lo, hi, ticks: t};
+}
+const uid = () => Math.random().toString(36).slice(2, 8);
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 3200); }
+
+// ───────── 상태
+const S = {
+  db: null, noDb: false, canWrite: null, sample: null, dl: null,
+  metricDocs: new Map(), entries: new Map(), got: {m: false, e: false},
+  M: new Map(), P: [], ser: new Map(), serByM: new Map(), revs: [], cross: [], consNow: null,
+  view: 'changes', detail: null, group: '전체', q: '', win: 30, kind: '전체',
+  showCons: false, showCross: false, feedN: 60, descByCode: {}, screens: [], gapSector: '전체', gapSort: 'g', gapDir: -1, gapCall: '전체', evType: '전체', evN: 12, events: [], evByM: new Map(), consItem: '영업이익', consYear: null,
+  src: {}, editMetric: false, openEntry: null, confirm: null, rawN: 120,
+  draft: null, images: [], extracting: null, inText: '', inAsOf: '', inVia: ''
+};
+
+function derive(){
+  const ents = [...S.entries.values()].sort((a, b) => (a.asOf||'') < (b.asOf||'') ? -1 : (a.asOf||'') > (b.asOf||'') ? 1 : (a.addedAt||'') < (b.addedAt||'') ? -1 : 1);
+  const M = new Map();
+  for (const e of ents) for (const [id, d] of Object.entries(e.defs || {})) if (d && typeof d === 'object') M.set(id, {...d, id});
+  for (const [id, d] of S.metricDocs) M.set(id, {...(M.get(id) || {}), ...d, id, _doc: true});
+  const P = [], seen = new Set();
+  for (const e of ents) (Array.isArray(e.pts) ? e.pts : []).forEach((p, i) => {
+    if (!p || typeof p.v !== 'number' || !isFinite(p.v) || !p.m || !p.p) return;
+    // 같은 숫자가 여러 경로(리포트·채널 전달)로 두 번 들어오면 하나만 센다
+    const dk = [p.m, p.p, p.src || e.src, p.asOf || e.asOf, p.v, p.a ? 1 : 0].join('|');
+    if (seen.has(dk)) return; seen.add(dk);
+    const pt = {m: String(p.m), p: String(p.p), v: p.v, a: !!p.a, lo: p.lo, hi: p.hi, n: p.n || '',
+      asOf: p.asOf || e.asOf || '', src: p.src || e.src || '출처 미상', st: p.st || e.st || '', via: e.via || '',
+      eid: e.id, i, et: e.title || '', added: e.addedAt || '', auto: !!e.auto};
+    P.push(pt);
+    if (!M.has(pt.m)) M.set(pt.m, {id: pt.m, name: pt.m, group: '미분류', sub: '', unit: '', freq: freqOf(pt.p), kind: '기타'});
+  });
+  for (const m of M.values()){ m.group = m.group || '미분류'; m.sub = m.sub || '기타'; m.unit = m.unit || ''; m.kind = m.kind || '기타'; }
+  const ser = new Map();
+  for (const pt of P){ if (pt.a) continue; const k = pt.m + '|' + pt.p + '|' + pt.src; let a = ser.get(k); if (!a) ser.set(k, a = []); a.push(pt); }
+  const serByM = new Map(), revs = [], cross = [];
+  const byMP = new Map();
+  for (const [k, arr] of ser){
+    arr.sort((a, b) => a.asOf < b.asOf ? -1 : a.asOf > b.asOf ? 1 : a.added < b.added ? -1 : 1);
+    const f = arr[0];
+    let l = serByM.get(f.m); if (!l) serByM.set(f.m, l = []);
+    l.push({key: k, m: f.m, p: f.p, src: f.src, st: f.st, pts: arr, last: arr[arr.length-1]});
+    for (let i = 1; i < arr.length; i++){
+      const a = arr[i-1], b = arr[i];
+      if (a.v === b.v) continue;
+      revs.push({m: b.m, p: b.p, src: b.src, st: b.st, from: a.v, to: b.v, fromAsOf: a.asOf, asOf: b.asOf, pt: b});
+    }
+    const mp = f.m + '|' + f.p; let x = byMP.get(mp); if (!x) byMP.set(mp, x = []); x.push(arr);
+  }
+  // 다른 출처와 처음 비교(새 출처가 처음 낸 값 vs 그 전 다른 출처의 최신값)
+  for (const list of byMP.values()){
+    if (list.length < 2) continue;
+    for (const arr of list){
+      const f = arr[0]; let best = null;
+      for (const other of list){ if (other === arr) continue; for (const q of other){ if (q.asOf <= f.asOf && (!best || q.asOf >= best.asOf)) best = q; } }
+      if (best && best.v !== f.v) cross.push({m: f.m, p: f.p, src: f.src, st: f.st, from: best.v, to: f.v, fromAsOf: best.asOf, fromSrc: best.src, asOf: f.asOf, pt: f, cross: true});
+    }
+  }
+  let consNow = null;
+  for (const pt of P) if (pt.st === '컨센서스' && (!consNow || pt.asOf > consNow)) consNow = pt.asOf;
+  Object.assign(S, {M, P, ser, serByM, revs, cross, consNow});
+  computeEvents();
+  if (!S.consYear) S.consYear = String(new Date().getFullYear() + 1);
+}
+function valAt(arr, d){ let r = null; if (!arr) return r; for (const p of arr){ if (p.asOf <= d) r = p; else break; } return r; }
+const passGroup = m => S.group === '전체' || m.group === S.group;
+function passQ(m, extra = ''){
+  if (!S.q) return true;
+  const hay = [m.name, m.entity, m.sub, m.group, m.code, m.id, extra].join(' ').toLowerCase();
+  return S.q.toLowerCase().split(/\s+/).filter(Boolean).every(w => hay.includes(w));
+}
+
+// ───────── 그리기: 머리·필터
+function renderTop(){
+  const STATIC = !!window.__LEDGER_STATIC;
+  const ing = document.querySelector('.tabs [data-tab=ingest]'); if (ing) ing.hidden = STATIC;
+  document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', (a.dataset.tab === S.view || (S.view === 'detail' && a.dataset.tab === 'metrics')) ? 'page' : 'false'));
+  const n = S.P.length, last = S.P.reduce((x, p) => p.asOf > x ? p.asOf : x, '');
+  if (S.got.e) $('#stamp').textContent = (STATIC && window.__LEDGER_BUILT ? `공유본 · ${window.__LEDGER_BUILT} 갱신 · ` : '') + (n ? `숫자 ${n.toLocaleString('ko-KR')}개 · 지표 ${S.M.size.toLocaleString('ko-KR')}개 · 출처 ${new Set(S.P.map(p => p.src)).size}곳 · 마지막 자료 ${shortDate(last)}` : '아직 기록된 숫자가 없습니다');
+  const groups = GROUP_ORDER.filter(g => [...S.M.values()].some(m => m.group === g));
+  for (const m of S.M.values()) if (!groups.includes(m.group)) groups.push(m.group);
+  const showBar = S.view === 'changes' || S.view === 'metrics' || S.view === 'log' || S.view === 'board';
+  if (!showBar){ $('#bar').innerHTML = ''; return; }
+  const wins = S.view === 'changes' ? `<div class="seg" role="group" aria-label="기간">${[[7,'7일'],[30,'30일'],[90,'90일'],[365,'1년']].map(([d, l]) => `<button data-act="win" data-v="${d}" aria-pressed="${S.win === d}">${l}</button>`).join('')}</div>` : '';
+  const kinds = S.view === 'metrics' ? `<select id="kindSel" aria-label="종류" class="chip" style="padding:4px 8px">${['전체', ...KINDS].map(k => `<option ${k === S.kind ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>` : '';
+  $('#bar').innerHTML = `<div class="chips" role="group" aria-label="산업">${['전체', ...groups].map(g => `<button class="chip" data-act="group" data-v="${esc(g)}" aria-pressed="${S.group === g}">${esc(g)}</button>`).join('')}</div>
+    ${wins}${kinds}
+    <div class="search"><input id="q" type="search" placeholder="지표·종목·출처 찾기" value="${esc(S.q)}" aria-label="찾기"></div>`;
+}
+
+function render(){
+  renderTop();
+  const main = $('#main');
+  if (S.noDb){ main.innerHTML = `<div class="panel empty"><b>저장된 숫자를 불러올 수 없는 화면입니다.</b><br>claude.ai에서 로그인한 채로 이 장부를 열면 기록된 숫자가 나타납니다.</div>`; return; }
+  if (!S.got.e || !S.got.m){ main.innerHTML = `<div class="empty">장부를 불러오는 중입니다…</div>`; return; }
+  if (S.view === 'changes') main.innerHTML = vChanges();
+  else if (S.view === 'metrics') main.innerHTML = vMetrics();
+  else if (S.view === 'detail') { main.innerHTML = vDetail(); drawDetailCharts(); }
+  else if (S.view === 'ingest') main.innerHTML = vIngest();
+  else if (S.view === 'log') main.innerHTML = vLog();
+  else if (S.view === 'board') main.innerHTML = vBoard();
+  else if (S.view === 'gap'){ main.innerHTML = vGap(); drawGapChart(); }
+  if (S.view === 'board' || S.view === 'changes') drawBoardSparks();
+  if (S.view === 'metrics' || S.view === 'changes') drawSparks();
+}
+
+// ───────── 변화
+function windowStart(){ return addDays(localToday(), -S.win); }
+// ───────── 서프라이즈·큰 변화
+// 기준: 레벨 지표는 ±3% 상회·하회, ±10% 서프라이즈·쇼크 / %·%p 지표는 ±1%p, ±3%p
+const SURP = {lvl: [3, 10], pp: [1, 3]};
+const sizeOf = (m, d) => { const t = m.unit === '%' ? SURP.pp : SURP.lvl, a = Math.abs(d); return a >= t[1] ? 2 : a >= t[0] ? 1 : 0; };
+const median = a => { const s = [...a].sort((x, y) => x - y), n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[n/2 - 1] + s[n/2]) / 2) : 0; };
+function computeEvents(){
+  const est = new Map(); // 지표|기간 → 추정 점(말한 날 순)
+  for (const pt of S.P){ if (pt.a) continue; const k = pt.m + '|' + pt.p; let a = est.get(k); if (!a) est.set(k, a = []); a.push(pt); }
+  for (const a of est.values()) a.sort((x, y) => x.asOf < y.asOf ? -1 : x.asOf > y.asOf ? 1 : x.added < y.added ? -1 : 1);
+  // 그날까지 나온 컨센서스(없으면 출처별 최신 추정의 중간값). exceptSrc를 주면 진짜 컨센서스만
+  const baseAt = (m, p, d, exceptSrc) => {
+    const upto = (est.get(m + '|' + p) || []).filter(x => x.asOf <= d && x.src !== exceptSrc);
+    const cons = upto.filter(x => x.st === '컨센서스' || /컨센/.test(x.src));
+    if (cons.length){ const c = cons[cons.length - 1]; return {v: c.v, label: c.src, asOf: c.asOf, cons: true}; }
+    if (exceptSrc !== undefined || !upto.length) return null;
+    const by = new Map(); for (const x of upto) by.set(x.src, x);
+    return {v: median([...by.values()].map(x => x.v)), label: by.size > 1 ? `추정 ${by.size}곳 중간값` : `${[...by.keys()][0]} 추정`, asOf: upto[upto.length - 1].asOf, cons: false};
+  };
+  S.baseAt = baseAt;
+  const ev = [];
+  // A) 실적이 처음 나온 날, 그 전까지의 컨센서스와 비교
+  const firstAct = new Map();
+  for (const pt of S.P) if (pt.a){ const k = pt.m + '|' + pt.p, o = firstAct.get(k); if (!o || pt.asOf < o.asOf) firstAct.set(k, pt); }
+  for (const a of firstAct.values()){
+    const m = S.M.get(a.m); if (!m) continue;
+    const b = baseAt(a.m, a.p, a.asOf); if (!b || !b.v) continue;
+    const c = change(b.v, a.v, m.unit), lv = sizeOf(m, c.d); if (!lv) continue;
+    ev.push({type: 'act', m: a.m, p: a.p, asOf: a.asOf, v: a.v, base: b, c, lv, src: a.src});
+  }
+  // B) 증권사·기관 추정이 컨센서스와 10%(3%p) 넘게 다름 — 출처별 최신 값만
+  const lastBy = new Map();
+  for (const pt of S.P){ if (pt.a || pt.st === '컨센서스' || /컨센/.test(pt.src)) continue; const k = pt.m + '|' + pt.p + '|' + pt.src, o = lastBy.get(k); if (!o || pt.asOf >= o.asOf) lastBy.set(k, pt); }
+  for (const x of lastBy.values()){
+    const m = S.M.get(x.m); if (!m) continue;
+    const b = baseAt(x.m, x.p, x.asOf, x.src); if (!b || !b.v) continue;
+    const c = change(b.v, x.v, m.unit), lv = sizeOf(m, c.d); if (lv < 2) continue;
+    ev.push({type: 'dev', m: x.m, p: x.p, asOf: x.asOf, v: x.v, base: b, c, lv, src: x.src});
+  }
+  // C) 큰 폭 수정 — 그 지표의 보통 수정폭(중간값)의 2배 이상이면서 5%(1.5%p) 이상
+  const typ = new Map();
+  for (const r of S.revs){ const m = S.M.get(r.m); if (!m) continue; let a = typ.get(r.m); if (!a) typ.set(r.m, a = []); a.push(Math.abs(change(r.from, r.to, m.unit).d)); }
+  for (const r of S.revs){
+    const m = S.M.get(r.m); if (!m) continue;
+    const c = change(r.from, r.to, m.unit), d = Math.abs(c.d), floor = m.unit === '%' ? 1.5 : 5, hist = typ.get(r.m);
+    const t = Math.max(floor, hist.length >= 4 ? 2 * median(hist) : floor);
+    if (d < t) continue;
+    r.big = true;
+    ev.push({type: 'rev', m: r.m, p: r.p, asOf: r.asOf, v: r.to, base: {v: r.from, label: `직전(${shortDate(r.fromAsOf)})`, asOf: r.fromAsOf}, c, lv: d >= 2 * t ? 2 : 1, src: r.src, cons: r.st === '컨센서스'});
+  }
+  // D) 실적·시세 시계열의 최신 값이 평소 움직임보다 크게 튐(최근 12번 변화의 2표준편차 밖)
+  for (const id of new Set(S.P.filter(p => p.a).map(p => p.m))){
+    const m = S.M.get(id); if (!m) continue;
+    const s = actualSeries(id); if (s.length < 8) continue;
+    const vals = s.map(x => x.v); if (!vals.every(v => v > 0)) continue;
+    const last = s[s.length - 1], monthly = /^\d{4}-\d{2}$/.test(last.p);
+    let ch = [], extra = null;
+    if (monthly && s.length >= 15){ // 월 자료는 계절성을 빼려고 '전년 대비 증가율'의 변화를 본다
+      const yoy = []; for (let i = 12; i < vals.length; i++) yoy.push(vals[i] / vals[i - 12] * 100 - 100);
+      for (let i = 1; i < yoy.length; i++) ch.push(yoy[i] - yoy[i - 1]);
+      extra = {from: yoy[yoy.length - 2], to: yoy[yoy.length - 1]};
+    } else for (let i = 1; i < vals.length; i++) ch.push((vals[i] / vals[i - 1] - 1) * 100);
+    const cur = ch[ch.length - 1], hist = ch.slice(-13, -1); if (hist.length < 6) continue;
+    const mean = hist.reduce((a, b) => a + b, 0) / hist.length, sd = Math.sqrt(hist.reduce((a, b) => a + (b - mean) ** 2, 0) / hist.length);
+    if (!sd) continue;
+    const z = (cur - mean) / sd;
+    if (Math.abs(z) < 2 || Math.abs(cur) < (extra ? 10 : 3)) continue;
+    ev.push({type: 'jump', m: id, p: last.p, asOf: last.asOf, v: last.v, c: {d: cur, txt: (cur >= 0 ? '+' : '') + fmtNum(cur, 1) + (extra ? '%p' : '%')}, lv: Math.abs(z) >= 3 ? 2 : 1, z, sd, extra, prev: s[s.length - 2]});
+  }
+  ev.sort((a, b) => a.asOf < b.asOf ? 1 : a.asOf > b.asOf ? -1 : b.lv - a.lv || Math.abs(b.c.d) - Math.abs(a.c.d));
+  const byM = new Map(); for (const e of ev) if (!byM.has(e.m)) byM.set(e.m, e);
+  S.events = ev; S.evByM = byM;
+}
+const EV_TYPES = [['전체', null], ['실적 서프라이즈', 'act'], ['컨센과 다른 추정', 'dev'], ['큰 폭 수정', 'rev'], ['지표 급변', 'jump']];
+function evBadge(e, small){
+  const up = e.c.d > 0, cls = `pill ${up ? 'up' : 'down'}${e.lv >= 2 ? ' strong' : ''}${small ? ' ev' : ''}`;
+  const word = e.type === 'act' ? (e.lv >= 2 ? (up ? '서프라이즈' : '쇼크') : (up ? '상회' : '하회'))
+    : e.type === 'dev' ? (up ? '컨센보다 높음' : '컨센보다 낮음')
+    : e.type === 'rev' ? `${e.cons ? '컨센 ' : ''}큰 ${up ? '상향' : '하향'}`
+    : `이례적 ${up ? '상승' : '하락'}`;
+  return `<span class="${cls}" title="${esc(evDesc(e))}">${arrow(e.c.d)} ${word}</span>`;
+}
+function evDesc(e){
+  if (e.type === 'act') return `실적 vs ${e.base.label}(${shortDate(e.base.asOf)}) · 발표 ${shortDate(e.asOf)}`;
+  if (e.type === 'dev') return `${e.src} 추정 vs ${e.base.label}(${shortDate(e.base.asOf)})`;
+  if (e.type === 'rev') return `${e.src} 수정 ${shortDate(e.base.asOf)} → ${shortDate(e.asOf)} · 평소 수정폭의 2배 넘음`;
+  return e.extra ? `전년 대비 증가율 변화 · 평소 ±${fmtNum(e.sd, 0)}%p` : `직전 대비 · 평소 ±${fmtNum(e.sd, 1)}%`;
+}
+// 변화율 표기: 10 넘으면 정수, 아니면 소수 한 자리
+const chgTxt = (d, pp) => (d > 0 ? '+' : d < 0 ? '−' : '') + fmtNum(Math.abs(d), Math.abs(d) >= 10 ? 0 : 1) + (pp ? '%p' : '%');
+function evRow(e){
+  const m = S.M.get(e.m) || {name: e.m, unit: ''};
+  const pp = m.unit === '%' || (e.type === 'jump' && e.extra);
+  const fromTo = e.type === 'jump' && e.extra ? `${fmtNum(e.extra.from, 0)}% → ${fmtNum(e.extra.to, 0)}%` : `${fmtV(e.type === 'jump' ? e.prev.v : e.base.v, m.unit)} → ${fmtV(e.v, m.unit)}`;
+  return `<a class="rev evrow" href="#m-${esc(e.m)}">${evBadge(e)}
+    <span class="what"><b>${esc(m.name)}</b>${descHtml(m)} <span class="tag">${esc(showP(e.p))}</span><br><span class="meta">${esc(evDesc(e))}</span></span>
+    <span class="evn"><b class="num ${dirCls(e.c.d)}">${chgTxt(e.c.d, pp)}</b><small class="num">${esc(fromTo)}</small></span></a>`;
+}
+function eventsPanel(){
+  const ws = windowStart(), t = (EV_TYPES.find(x => x[0] === S.evType) || EV_TYPES[0])[1];
+  const list = S.events.filter(e => e.asOf >= ws && (!t || e.type === t) && (() => { const m = S.M.get(e.m); return m && passGroup(m) && passQ(m, e.src || ''); })());
+  const counts = Object.fromEntries(EV_TYPES.map(([l, k]) => [l, S.events.filter(e => e.asOf >= ws && (!k || e.type === k)).length]));
+  return `<section class="panel" style="margin-bottom:16px" aria-labelledby="h-ev"><div class="ph"><h2 id="h-ev">서프라이즈·큰 변화</h2><span class="hint">실적 ±3%·±10%(비율 ±1%p·±3%p) 기준, 컨센서스가 없으면 추정 중간값과 비교</span></div>
+    <div class="chips" style="margin-bottom:8px">${EV_TYPES.map(([l]) => `<button class="chip" data-act="evType" data-v="${esc(l)}" aria-pressed="${l === S.evType}">${esc(l)} <small class="num">${counts[l]}</small></button>`).join('')}</div>
+    ${list.length ? `<div class="feed">${list.slice(0, S.evN).map(evRow).join('')}</div>${list.length > S.evN ? `<div class="more"><button class="btn" data-act="evMore">${list.length - S.evN}건 더 보기</button></div>` : ''}`
+      : `<div class="empty" style="padding:6px 0">이 기간에는 표시할 서프라이즈나 큰 변화가 없습니다.</div>`}
+  </section>`;
+}
+// 상세: 실적이 나온 기간마다 그 전 컨센서스와 비교(부합 포함)
+function surpriseTable(m){
+  if (!S.baseAt) return '';
+  const first = new Map();
+  for (const pt of S.P) if (pt.m === m.id && pt.a){ const o = first.get(pt.p); if (!o || pt.asOf < o.asOf) first.set(pt.p, pt); }
+  const rows = [...first.values()].map(a => { const b = S.baseAt(m.id, a.p, a.asOf); return b && b.v ? {a, b, c: change(b.v, a.v, m.unit)} : null; }).filter(Boolean).sort((x, y) => pKey(y.a.p) - pKey(x.a.p));
+  if (!rows.length) return '';
+  return `<section class="panel" style="margin-top:16px"><div class="ph"><h2>실적 vs 컨센서스</h2><span class="hint">실적이 처음 나온 날 기준, 그 전까지의 컨센서스(없으면 추정 중간값)</span></div>
+    <div class="tw"><table><thead><tr><th>기간</th><th class="n">실적</th><th>비교 기준</th><th class="n">기준 값</th><th class="n">차이</th><th></th></tr></thead><tbody>
+    ${rows.map(({a, b, c}) => { const lv = sizeOf(m, c.d); const e = {type: 'act', c, lv, v: a.v, base: b, asOf: a.asOf, m: m.id}; return `<tr><td>${esc(showP(a.p))}<br><small>${shortDate(a.asOf)}</small></td><td class="n num">${esc(fmtV(a.v, m.unit))}</td><td>${esc(b.label)}<br><small>${shortDate(b.asOf)}</small></td><td class="n num">${esc(fmtV(b.v, m.unit))}</td><td class="n num ${dirCls(c.d)}">${arrow(c.d)} ${esc(c.txt.replace(/^[+-]/, ''))}</td><td>${lv ? evBadge(e, true) : '<span class="pill flat ev">부합</span>'}</td></tr>`; }).join('')}
+    </tbody></table></div></section>`;
+}
+function revRow(r){
+  const m = S.M.get(r.m) || {name: r.m, unit: ''};
+  const c = change(r.from, r.to, m.unit);
+  const cls = dirCls(c.d);
+  return `<a class="rev" href="#m-${esc(r.m)}">
+    <span class="pill ${cls}">${arrow(c.d)} ${esc(c.txt.replace(/^[+-]/, ''))}</span>
+    <span class="what"><b>${esc(m.name)}</b>${descHtml(m)} <span class="tag">${esc(showP(r.p))}</span> ${r.st === '컨센서스' ? '<span class="tag cons">컨센서스</span>' : ''}${r.big ? ' <span class="tag big" title="이 지표의 보통 수정폭보다 훨씬 큼">큰 폭</span>' : ''}<br>
+      <span class="meta">${r.cross ? `${esc(r.src)} 첫 값 vs ${esc(r.fromSrc)}(${shortDate(r.fromAsOf)})` : `${esc(r.src)} · ${shortDate(r.fromAsOf)} → ${shortDate(r.asOf)}`}${r.pt.n ? ' · ' + esc(r.pt.n) : ''}</span></span>
+    <span class="nums num">${esc(fmtV(r.from, m.unit))} → <span class="to">${esc(fmtV(r.to, m.unit))}</span></span>
+  </a>`;
+}
+function vChanges(){
+  if (!S.P.length) return `<div class="panel empty"><b>아직 기록된 숫자가 없습니다.</b><br>‘자료 넣기’에 텔레그램 글·컨콜 메모·표 캡처를 붙여 넣거나, Claude Code 대화창에 자료를 보내 “장부에 넣어 줘”라고 하면 여기부터 채워집니다.</div>`;
+  const ws = windowStart();
+  const inWin = x => x.asOf >= ws;
+  const ok = r => { const m = S.M.get(r.m); return m && passGroup(m) && passQ(m, r.src); };
+  const nonCons = S.revs.filter(r => r.st !== '컨센서스' && inWin(r) && ok(r));
+  const consR = S.revs.filter(r => r.st === '컨센서스' && inWin(r) && ok(r));
+  const newPts = S.P.filter(p => !p.auto && inWin(p) && ok(p));
+  const up = nonCons.filter(r => r.to > r.from).length, dn = nonCons.length - up;
+  const cUp = consR.filter(r => r.to > r.from).length, cDn = consR.length - cUp;
+  let feed = [...nonCons, ...(S.showCons ? consR : []), ...(S.showCross ? S.cross.filter(r => inWin(r) && ok(r)) : [])];
+  feed.sort((a, b) => a.asOf < b.asOf ? 1 : a.asOf > b.asOf ? -1 : Math.abs(change(b.from, b.to).d) - Math.abs(change(a.from, a.to).d));
+  const total = feed.length; feed = feed.slice(0, S.feedN);
+  const wl = {7:'7일', 30:'30일', 90:'90일', 365:'1년'}[S.win];
+  return `
+  <div class="stats">
+    <div class="stat"><div class="lbl">최근 ${wl} 새 숫자</div><div class="v">${newPts.length.toLocaleString('ko-KR')}</div><div class="d">지표 ${new Set(newPts.map(p => p.m)).size}개 · 출처 ${new Set(newPts.map(p => p.src)).size}곳</div></div>
+    <div class="stat"><div class="lbl">같은 출처가 고친 추정</div><div class="v">${nonCons.length}</div><div class="d"><span class="up">▲ ${up}</span> · <span class="down">▼ ${dn}</span></div></div>
+    <div class="stat"><div class="lbl">컨센서스 바뀐 항목</div><div class="v">${consR.length}</div><div class="d"><span class="up">▲ ${cUp}</span> · <span class="down">▼ ${cDn}</span></div></div>
+    <div class="stat"><div class="lbl">가장 최근 자료</div><div class="v num" style="font-size:19px">${shortDate(S.P.reduce((x, p) => p.asOf > x ? p.asOf : x, ''))}</div><div class="d">컨센서스 기준일 ${shortDate(S.consNow) || '–'}</div></div>
+  </div>
+  ${eventsPanel()}
+  ${gapCallsPanel()}
+  <div class="grid2">
+    <section class="panel" aria-labelledby="h-feed">
+      <div class="ph"><h2 id="h-feed">추정이 바뀐 숫자</h2>
+        <span class="row">
+          <label class="hint"><input type="checkbox" data-act="showCons" ${S.showCons ? 'checked' : ''}> 컨센서스 포함</label>
+          <label class="hint"><input type="checkbox" data-act="showCross" ${S.showCross ? 'checked' : ''}> 다른 출처 대비</label>
+        </span></div>
+      ${total ? `<div class="feed">${feed.map(revRow).join('')}</div>${total > feed.length ? `<div class="more"><button class="btn" data-act="feedMore">${total - feed.length}건 더 보기</button></div>` : ''}`
+        : `<div class="empty">이 기간에 같은 출처가 숫자를 고친 기록이 없습니다.<br><small class="hint">같은 지표·같은 기간을 같은 출처가 다시 말하면 여기에 잡힙니다. ‘다른 출처 대비’를 켜면 출처가 달라도 비교합니다.</small></div>`}
+    </section>
+    <section class="panel" aria-labelledby="h-brd"><div class="ph"><h2 id="h-brd">업종별 상향·하향</h2><span class="hint">같은 출처 수정 건수, 컨센서스 제외</span></div>${breadth(nonCons)}</section>
+  </div>
+  ${movesPanel()}
+  ${consPanel()}`;
+}
+function breadth(list){
+  if (!list.length) return `<div class="empty" style="padding:8px 0">이 기간 수정 기록 없음</div>`;
+  const g = new Map();
+  for (const r of list){ const m = S.M.get(r.m); const k = m.group + '|' + m.sub; const o = g.get(k) || {group: m.group, sub: m.sub, up: 0, dn: 0}; r.to > r.from ? o.up++ : o.dn++; g.set(k, o); }
+  const rows = [...g.values()].sort((a, b) => (b.up + b.dn) - (a.up + a.dn)).slice(0, 12);
+  const mx = Math.max(...rows.map(r => Math.max(r.up, r.dn)), 1);
+  return `<div class="brd">${rows.map(r => `<div class="brow"><div class="nm">${esc(r.sub)} <small>${esc(r.group)}</small></div>
+    <div class="dv" title="상향 ${r.up}건, 하향 ${r.dn}건"><div class="l">${r.dn ? `<span class="num">${r.dn}</span>` : ''}<i style="width:${r.dn / mx * 100}%"></i></div><div class="mid"></div><div class="r"><i style="width:${r.up / mx * 100}%"></i>${r.up ? `<span class="num">${r.up}</span>` : ''}</div></div></div>`).join('')}
+    <div class="brow"><div></div><div class="dv" style="height:auto"><div class="l"><span>▼ 하향</span></div><div></div><div class="r"><span>상향 ▲</span></div></div></div></div>`;
+}
+function consMetrics(){
+  const out = [];
+  for (const m of S.M.values()){ if (m.item !== S.consItem || !passGroup(m) || !passQ(m)) continue; const arr = S.ser.get(m.id + '|' + S.consYear + '|컨센서스'); if (arr) out.push([m, arr]); }
+  return out;
+}
+function consPanel(){
+  if (!S.consNow) return '';
+  const now = S.consNow, list = consMetrics();
+  const years = [...new Set([...S.ser.keys()].filter(k => k.endsWith('|컨센서스')).map(k => k.split('|')[1]))].sort();
+  const items = [...new Set([...S.M.values()].map(m => m.item).filter(Boolean))];
+  const looks = [['1주', 7], ['1개월', 30], ['3개월', 91], ['1년', 365]];
+  const bySub = new Map();
+  for (const [m, arr] of list){ let x = bySub.get(m.sub); if (!x) bySub.set(m.sub, x = []); x.push(arr); }
+  const agg = arrs => {
+    const cur = arrs.map(a => valAt(a, now)).filter(Boolean);
+    const sum = cur.reduce((s, p) => s + p.v, 0);
+    const cols = looks.map(([, d]) => { const d0 = addDays(now, -d); let s0 = 0, s1 = 0, n = 0; for (const a of arrs){ const x = valAt(a, d0), y = valAt(a, now); if (x && y){ s0 += x.v; s1 += y.v; n++; } } return n && s0 ? {c: (s1 - s0) / Math.abs(s0) * 100, n} : null; });
+    return {n: cur.length, sum, cols};
+  };
+  const rows = [...bySub].map(([sub, arrs]) => ({sub, ...agg(arrs)})).sort((a, b) => b.sum - a.sum);
+  const all = agg(list.map(([, a]) => a));
+  const cell = c => c ? `<td class="n num ${dirCls(c.c)}" title="두 시점 모두 값이 있는 ${c.n}종목 합계 기준">${c.c >= 0 ? '+' : ''}${fmtNum(c.c, 1)}%</td>` : '<td class="n flat">–</td>';
+  // 많이 바뀐 종목
+  const d0 = addDays(now, -S.win);
+  const mv = list.map(([m, arr]) => { const x = valAt(arr, d0), y = valAt(arr, now); return x && y && x.v > 30 && y.v > 0 ? {m, x, y, c: (y.v - x.v) / x.v * 100} : null; }).filter(o => o && Math.abs(o.c) >= 0.05);
+  mv.sort((a, b) => b.c - a.c);
+  const ups = mv.filter(o => o.c > 0).slice(0, 6), dns = mv.filter(o => o.c < 0).slice(-6).reverse();
+  const wl = {7:'1주', 30:'1개월', 90:'3개월', 365:'1년'}[S.win];
+  const mvRow = o => `<a class="rev evrow" href="#m-${esc(o.m.id)}"><span class="pill ${dirCls(o.c)}">${arrow(o.c)} ${o.c > 0 ? '상향' : '하향'}</span><span class="what"><b>${esc(o.m.entity || o.m.name)}</b>${descHtml(o.m)}<br><span class="meta">${esc(o.m.sub)}</span></span><span class="evn"><b class="num ${dirCls(o.c)}">${chgTxt(o.c)}</b><small class="num">${esc(fmtV(o.x.v, o.m.unit))} → ${esc(fmtV(o.y.v, o.m.unit))}</small></span></a>`;
+  return `<section class="panel" style="margin-top:16px" aria-labelledby="h-cons">
+    <div class="ph"><h2 id="h-cons">컨센서스 합산 변화</h2><span class="hint">기준일 ${shortDate(now)}</span></div>
+    <div class="row" style="margin-bottom:8px">
+      <div class="seg" role="group" aria-label="항목">${items.map(i => `<button data-act="consItem" data-v="${esc(i)}" aria-pressed="${i === S.consItem}">${esc(i)}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="연도">${years.map(y => `<button data-act="consYear" data-v="${esc(y)}" aria-pressed="${y === S.consYear}">${esc(y)}</button>`).join('')}</div>
+    </div>
+    ${list.length ? `<div class="gridc"><div style="min-width:0"><div class="tw"><table class="ctab"><thead><tr><th>구간</th><th class="n">종목</th><th class="n">${esc(S.consYear)} 합계</th>${looks.map(([l]) => `<th class="n">${l}</th>`).join('')}</tr></thead><tbody>
+      ${rows.map(r => `<tr><td>${esc(r.sub)}</td><td class="n num">${r.n}</td><td class="n num">${esc(fmtV(r.sum, '억원'))}</td>${r.cols.map(cell).join('')}</tr>`).join('')}
+      <tr><td><b>전체</b></td><td class="n num"><b>${all.n}</b></td><td class="n num"><b>${esc(fmtV(all.sum, '억원'))}</b></td>${all.cols.map(cell).join('')}</tr>
+    </tbody></table></div>
+    <p class="cap">각 칸은 두 시점에 모두 컨센서스가 있는 종목만 더해 비교한 값입니다. 구간은 반도체 탑픽 도구의 분류입니다.</p></div>
+    <div style="min-width:0"><div class="ph"><h2 style="font-size:14px">${wl} 동안 많이 바뀐 종목</h2><span class="hint">${esc(S.consYear)} ${esc(S.consItem)} · 위 기간 단추로 바꿈</span></div>
+    ${mv.length ? `<div class="feed">${ups.map(mvRow).join('')}${dns.map(mvRow).join('')}</div>` : `<div class="empty" style="padding:6px 0">이 기간에 바뀐 종목이 없습니다.</div>`}</div></div>`
+    : `<div class="empty" style="padding:8px 0">이 산업·연도에는 컨센서스 기록이 없습니다.</div>`}
+  </section>`;
+}
+
+// ───────── 지표 목록
+function focusOf(m){
+  const l = S.serByM.get(m.id) || [];
+  if (l.length){
+    const want = String(new Date().getFullYear() + 1);
+    const c = l.find(s => s.src === '컨센서스' && s.p === want);
+    if (c) return c;
+    return [...l].sort((a, b) => a.last.asOf < b.last.asOf ? 1 : a.last.asOf > b.last.asOf ? -1 : b.pts.length - a.pts.length || pKey(b.p) - pKey(a.p))[0];
+  }
+  const acts = S.P.filter(p => p.m === m.id && p.a).sort((a, b) => pKey(a.p) - pKey(b.p));
+  return acts.length ? {actual: true, pts: acts, last: acts[acts.length-1], p: acts[acts.length-1].p, src: acts[acts.length-1].src} : null;
+}
+function metricRow(m, last){
+  const f = focusOf(m); let lv = '–', sub2 = '', badge = '';
+  if (f){
+    lv = fmtV(f.last.v, m.unit);
+    sub2 = `${showP(f.p)}${f.actual ? ' 실적' : ''} · ${f.src}`;
+    if (!f.actual && f.pts.length > 1){ const prev = [...f.pts].reverse().find(p => p.v !== f.last.v); if (prev){ const c = change(prev.v, f.last.v, m.unit); badge = ` <span class="pill ${dirCls(c.d)}" title="${esc(shortDate(prev.asOf))} → ${esc(shortDate(f.last.asOf))} 같은 출처 직전 값 대비">${arrow(c.d)} ${esc(c.txt.replace(/^[+-]/, ''))}</span>`; } }
+  }
+  const ev = S.evByM.get(m.id), evOn = ev && ev.asOf >= addDays(localToday(), -30);
+  return `<a class="mrow" href="#m-${esc(m.id)}"><span class="nm"><b>${esc(m.name)}</b>${evOn ? evBadge(ev, true) : ''}<small>${esc([descOf(m), m.kind, m.unit].filter(Boolean).join(' · '))}</small></span>
+    <span class="lv"><span class="num">${esc(lv)}</span>${badge}<small>${esc(sub2)}</small></span>
+    <span class="sp" data-spark="${esc(m.id)}"></span><span class="dt num">${shortDate(last || '')}</span></a>`;
+}
+
+// ───────── 가격판: 자동으로 쌓이는 시세·월매출·수출 + 자료에서 뽑은 가격 전망
+const BOARD_ORDER = ['D램 현물', 'D램 모듈', 'D램 고정가', '낸드', '배터리 소재', '한국 수출', '대만 월매출', '자료에서 뽑은 가격'];
+function boardStats(m){
+  const s = actualSeries(m.id); if (!s.length) return null;
+  const last = s[s.length-1], t = pDate(last.p), daily = /^\d{4}-\d{2}-\d{2}$/.test(last.p);
+  const at = d => { let r = null; for (const x of s){ if (pDate(x.p) <= d) r = x; else break; } return r; };
+  const prev = s.length > 1 ? s[s.length-2] : null;
+  const mo = daily ? at(t - 30*DAY) : null;
+  let yr = at(t - 365*DAY); if (yr && t - pDate(yr.p) > 400*DAY) yr = null;
+  return {s, last, prev, mo: mo === last ? null : mo, yr: yr === last ? null : yr, daily};
+}
+function chgTd(base, last, unit){
+  if (!base || !last) return '<td class="n flat">–</td>';
+  const c = change(base.v, last.v, unit);
+  return `<td class="n num ${dirCls(c.d)}" title="${esc(showP(base.p))} ${esc(fmtV(base.v, unit))} 대비">${arrow(c.d)} ${esc(c.txt.replace(/^[+-]/, ''))}</td>`;
+}
+function vBoard(){
+  const ms = [...S.M.values()].filter(m => passGroup(m) && passQ(m));
+  const groups = new Map();
+  for (const m of ms){
+    const b = m.board || (m.kind === '가격' && !(S.serByM.get(m.id) || []).length && actualSeries(m.id).length ? '자료에서 뽑은 가격' : null);
+    if (!b) continue; const st = boardStats(m); if (!st) continue;
+    let g = groups.get(b); if (!g) groups.set(b, g = []); g.push({m, st});
+  }
+  const outlook = ms.filter(m => m.kind === '가격' && (S.serByM.get(m.id) || []).length);
+  if (!groups.size && !outlook.length) return `<div class="panel empty"><b>아직 가격 기록이 없습니다.</b><br>예약 작업이 트렌드포스 가격표·대만 월매출·관세청 수출 통계를 받아 오면 여기에 쌓입니다.</div>`;
+  const order = [...groups.keys()].sort((a, b) => (BOARD_ORDER.indexOf(a) + 99) % 99 - (BOARD_ORDER.indexOf(b) + 99) % 99);
+  const table = (b, rows) => {
+    rows.sort((x, y) => (x.m.sub || '').localeCompare(y.m.sub || '', 'ko') || String(x.m.name).localeCompare(String(y.m.name), 'ko'));
+    const daily = rows.some(r => r.st.daily);
+    return `<section class="panel" style="margin-top:16px"><div class="ph"><h2>${esc(b)}</h2><span class="hint">${rows.length}개 · ${daily ? '기간 = 가격표 갱신일' : '월 확정치'}</span></div>
+      <div class="tw"><table><thead><tr><th>지표</th><th class="n">최근 값</th><th class="n">기준</th><th class="n">직전 대비</th>${daily ? '<th class="n">1개월 전 대비</th>' : ''}<th class="n">1년 전 대비</th><th>흐름</th></tr></thead><tbody>
+      ${rows.map(({m, st}) => `<tr><td><a href="#m-${esc(m.id)}">${esc(m.name)}</a>${(() => { const ev = S.evByM.get(m.id); return ev && ev.asOf >= addDays(localToday(), -30) ? evBadge(ev, true) : ''; })()}<br><small>${esc([descOf(m) || m.sub, m.unit].filter(Boolean).join(' · '))}</small></td>
+        <td class="n num">${esc(fmtV(st.last.v, m.unit))}</td><td class="n num">${esc(showP(st.last.p))}</td>${chgTd(st.prev, st.last, m.unit)}${daily ? chgTd(st.mo, st.last, m.unit) : ''}${chgTd(st.yr, st.last, m.unit)}
+        <td><span data-bspark="${esc(m.id)}"></span></td></tr>`).join('')}
+      </tbody></table></div></section>`;
+  };
+  return `<p class="hint" style="margin:4px 0 0;color:var(--muted)">트렌드포스 공개 가격표(메모리·배터리 소재), 대만 부품사 월매출, 관세청 품목별 수출은 예약 작업이 자동으로 쌓습니다. 고정가는 한 달 늦게 공개됩니다.</p>
+    ${outlook.length ? `<section class="panel" style="margin-top:16px"><div class="ph"><h2>가격 전망·추정</h2><span class="hint">HBM·D램·낸드·MLCC 등 기관·증권사가 말한 앞으로의 가격, 같은 출처 직전 값 대비</span></div>${outlook.sort((a, b) => String(a.name).localeCompare(String(b.name), 'ko')).map(m => metricRow(m, S.P.reduce((x, p) => p.m === m.id && p.asOf > x ? p.asOf : x, ''))).join('')}</section>` : ''}
+    ${order.map(b => table(b, groups.get(b))).join('')}`;
+}
+function drawBoardSparks(){
+  document.querySelectorAll('[data-bspark]').forEach(el => {
+    const s = actualSeries(el.dataset.bspark); const pts = s.slice(/^\d{4}-\d{2}-\d{2}$/.test(s[s.length-1]?.p || '') ? -40 : -25);
+    if (pts.length < 2) return;
+    const vs = pts.map(p => p.v), mn = Math.min(...vs), mx = Math.max(...vs), W = 96, H = 24, pd = 3;
+    const ts = pts.map(p => pDate(p.p)), x0 = ts[0], x1 = ts[ts.length-1];
+    const X = t => x1 === x0 ? W/2 : pd + (t - x0) / (x1 - x0) * (W - pd*2), Y = v => mx === mn ? H/2 : H - pd - (v - mn) / (mx - mn) * (H - pd*2);
+    const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(ts[i]).toFixed(1)},${Y(p.v).toFixed(1)}`).join('');
+    el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--ink-2)" stroke-width="1.5" stroke-linejoin="round"/><circle cx="${X(x1)}" cy="${Y(vs[vs.length-1])}" r="3" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"/></svg>`;
+  });
+}
+// 변화 화면용: 시세는 기간 단추만큼, 월 자료는 최근 달의 전년 대비
+function movesPanel(){
+  const daily = [], monthly = [];
+  for (const m of S.M.values()){
+    if (!m.board || !passGroup(m) || !passQ(m)) continue;
+    const st = boardStats(m); if (!st) continue;
+    if (st.daily){ const t = pDate(st.last.p); let base = null; for (const x of st.s){ if (pDate(x.p) <= t - S.win*DAY) base = x; else break; } if (base && base.v) daily.push({m, base, last: st.last, c: change(base.v, st.last.v, m.unit)}); }
+    else if (st.yr && st.yr.v > 0 && m.unit !== '달러/kg') monthly.push({m, base: st.yr, last: st.last, c: change(st.yr.v, st.last.v, m.unit)});
+  }
+  const row = o => `<a class="rev evrow" href="#m-${esc(o.m.id)}"><span class="pill ${dirCls(o.c.d)}">${arrow(o.c.d)} ${o.c.d > 0 ? '상승' : '하락'}</span><span class="what"><b>${esc(o.m.name)}</b>${descHtml(o.m)}<br><span class="meta">${esc(showP(o.base.p))} → ${esc(showP(o.last.p))}</span></span><span class="evn"><b class="num ${dirCls(o.c.d)}">${chgTxt(o.c.d, o.m.unit === '%')}</b><small class="num">${esc(fmtV(o.base.v, o.m.unit))} → ${esc(fmtV(o.last.v, o.m.unit))}</small></span></a>`;
+  const top = arr => { arr.sort((a, b) => b.c.d - a.c.d); return [...arr.filter(o => o.c.d > 0).slice(0, 5), ...arr.filter(o => o.c.d < 0).slice(-5).reverse()]; };
+  if (!daily.length && !monthly.length) return '';
+  const wl = {7:'1주', 30:'1개월', 90:'3개월', 365:'1년'}[S.win];
+  return `<section class="panel" style="margin-top:16px" aria-labelledby="h-moves"><div class="ph"><h2 id="h-moves">가격·월매출 움직임</h2><a class="hint" href="#board">가격판 전체 보기 →</a></div>
+    <div class="gridc"><div style="min-width:0"><div class="lbl" style="margin-bottom:4px">시세 · 최근 ${wl}</div>${daily.length ? `<div class="feed">${top(daily).map(row).join('')}</div>` : `<div class="empty" style="padding:6px 0">시세 기록이 ${wl} 치 쌓이면 여기에 나옵니다.</div>`}</div>
+    <div style="min-width:0"><div class="lbl" style="margin-bottom:4px">월 자료 · 최근 달 전년 대비(대만 월매출·한국 수출)</div>${monthly.length ? `<div class="feed">${top(monthly).map(row).join('')}</div>` : `<div class="empty" style="padding:6px 0">아직 없음</div>`}</div></div></section>`;
+}
+// ───────── 괴리판: 컨센서스 이익 상향 vs 주가 (매일 1장, screens 컬렉션)
+const CALLS = {buy2: ['강한 매수 콜', 'up', true], buy1: ['매수 관심', 'up', false], ahead: ['주가가 이익보다 앞서감', 'warn', false], down: ['추정 하향', 'down', false]};
+const callPill = (c, isNew) => c ? `<span class="pill ${CALLS[c][1] === 'warn' ? 'flat warn' : CALLS[c][1]}${CALLS[c][2] ? ' strong' : ''} ev">${esc(CALLS[c][0])}</span>${isNew ? ' <span class="tag big">신규</span>' : ''}` : '';
+const sgn = v => v == null ? '–' : (v > 0 ? '+' : '') + fmtNum(v, 1);
+function stockLink(r){ const id = `co-${r.c}-op`; return S.M.has(id) ? `<a href="#m-${id}">${esc(r.n)}</a>` : esc(r.n); }
+function gapRows(){
+  const sc = S.screens[0]; if (!sc) return [];
+  return sc.rows.filter(r => (S.gapSector === '전체' || r.s === S.gapSector) && (S.gapCall === '전체' || r.call === S.gapCall) && (!S.q || (r.n + ' ' + r.s + ' ' + r.c).toLowerCase().includes(S.q.toLowerCase())));
+}
+function gapCallsPanel(){
+  const sc = S.screens[0]; if (!sc) return '';
+  const buys = sc.rows.filter(r => r.call === 'buy2' || r.call === 'buy1').sort((a, b) => (a.call === 'buy2' ? 0 : 1) - (b.call === 'buy2' ? 0 : 1) || b.g - a.g);
+  if (!buys.length) return '';
+  return `<section class="panel" style="margin-bottom:16px" aria-labelledby="h-gc"><div class="ph"><h2 id="h-gc">이익 상향에 비해 덜 오른 종목</h2><a class="hint" href="#gap">괴리판 전체 보기 →</a></div>
+    <div class="feed">${buys.slice(0, 8).map(r => `<a class="rev evrow" href="#gap">${callPill(r.call)}<span class="what"><b>${esc(r.n)}</b>${S.descByCode[r.c] ? `<span class="desc">${esc(S.descByCode[r.c])}</span>` : ''} <span class="tag">${esc(r.s)}</span>${r.isNew ? ' <span class="tag big">신규</span>' : ''}<br><span class="meta">${r.eb === 'op' ? '영업이익' : 'EPS'} 컨센 ${sgn(r.e3)}% · 주가 ${sgn(r.r3)}% · PER ${r.pe ?? '–'}배</span></span><span class="evn"><b class="num up">${sgn(r.g)}%p</b><small>괴리(3개월)</small></span></a>`).join('')}</div>
+    <p class="cap">기준일 ${shortDate(sc.asOf)} · ${sc.year}E 컨센서스와 주가 모두 최근 3개월 변화(와이즈리포트). 매수 판단의 출발점일 뿐, 차트·밸류에이션은 따로 확인하세요.</p></section>`;
+}
+function vGap(){
+  const sc = S.screens[0];
+  if (!sc) return `<div class="panel empty"><b>아직 괴리판이 없습니다.</b><br>예약 작업이 하루 한 번 관심 종목의 컨센서스 추이와 주가 수익률을 받아 여기에 그립니다.</div>`;
+  const rows = gapRows(), R = sc.rule || {};
+  const sectors = ['전체', ...new Set(sc.rows.map(r => r.s))];
+  const cnt = k => sc.rows.filter(r => r.call === k).length;
+  const sorted = [...rows].sort((a, b) => { const k = S.gapSort, x = a[k], y = b[k]; if (typeof x === 'string' || typeof y === 'string') return String(x ?? '').localeCompare(String(y ?? ''), 'ko') * -S.gapDir; return ((x ?? -1e9) - (y ?? -1e9)) * S.gapDir; });
+  const th = (k, l, n) => `<th class="${n ? 'n' : ''}"><button class="linkbtn" style="color:inherit;font-weight:500" data-act="gapSort" data-v="${k}">${l}${S.gapSort === k ? (S.gapDir < 0 ? ' ▼' : ' ▲') : ''}</button></th>`;
+  return `<div class="dhead"><div><h2>컨센서스 이익 상향 vs 주가</h2>
+      <p>기준일 ${esc(sc.asOf)} · ${esc(sc.year)}E 영업이익 컨센서스(없으면 EPS)의 3개월 변화와 주가 3개월 수익률을 비교합니다. 괴리 = 컨센 변화 − 주가 수익률. 이익은 올랐는데 주가가 덜 갔으면 위쪽, 주가가 이익보다 먼저 뛰었으면 아래쪽입니다. ${sc.n}종목.</p></div></div>
+    <div class="stats">
+      <div class="stat"><div class="lbl">강한 매수 콜</div><div class="v up">${cnt('buy2')}</div><div class="d">컨센 +${R.buy2?.e3}%↑·괴리 ${R.buy2?.gap}%p↑·1개월 하향 없음</div></div>
+      <div class="stat"><div class="lbl">매수 관심</div><div class="v up">${cnt('buy1')}</div><div class="d">컨센 +${R.buy1?.e3}%↑·괴리 ${R.buy1?.gap}%p↑</div></div>
+      <div class="stat"><div class="lbl">주가가 이익보다 앞서감</div><div class="v warn">${cnt('ahead')}</div><div class="d">주가−컨센 ${-R.ahead?.gap}%p↑·PER ${R.ahead?.dpe}%↑ 팽창</div></div>
+      <div class="stat"><div class="lbl">추정 하향</div><div class="v down">${cnt('down')}</div><div class="d">컨센 3개월 ${R.down?.e3}% 이하</div></div>
+    </div>
+    <div class="row" style="margin-bottom:10px"><div class="chips">${['전체', 'buy2', 'buy1', 'ahead', 'down'].map(k => `<button class="chip" data-act="gapCall" data-v="${k}" aria-pressed="${S.gapCall === k}">${k === '전체' ? '판정 전체' : esc(CALLS[k][0])}</button>`).join('')}</div></div>
+    <div class="chips" style="margin-bottom:12px">${sectors.map(x => `<button class="chip" data-act="gapSector" data-v="${esc(x)}" aria-pressed="${S.gapSector === x}">${esc(x)}</button>`).join('')}</div>
+    <section class="panel"><div class="ph"><h2>이익 변화와 주가</h2><span class="hint">가로 = ${esc(sc.year)}E 컨센 3개월 변화, 세로 = 주가 3개월 수익률, 대각선 = 같은 만큼 움직임</span></div><div id="gapChart" class="chart"></div></section>
+    <section class="panel" style="margin-top:16px"><div class="ph"><h2>종목별</h2><span class="hint">${rows.length}종목 · 머리글을 누르면 정렬</span></div>
+      <div class="tw"><table><thead><tr>${th('n', '종목')}${th('s', '업종')}${th('call', '판정')}${th('e3', '컨센 3개월', 1)}${th('e1', '컨센 1개월', 1)}${th('op3', '영업이익 3개월', 1)}${th('eps3', 'EPS 3개월', 1)}${th('r3', '주가 3개월', 1)}${th('r1', '주가 1개월', 1)}${th('g', '괴리(%p)', 1)}${th('pe', '선행 PER', 1)}${th('dpe', 'PER 변화(추정)', 1)}${th('na', '커버 수', 1)}</tr></thead><tbody>
+      ${sorted.map(r => `<tr><td>${stockLink(r)}<br><small>${esc([S.descByCode[r.c], r.turn ? '흑자전환' : ''].filter(Boolean).join(' · ') || r.c)}</small></td><td><small>${esc(r.s)}</small></td><td>${callPill(r.call, r.isNew) || '<small style="color:var(--muted)">–</small>'}</td>
+        <td class="n num ${dirCls(r.e3 ?? 0)}">${sgn(r.e3)}%<br><small>${r.eb === 'op' ? '영업이익' : 'EPS'}</small></td><td class="n num">${sgn(r.e1)}%</td><td class="n num">${sgn(r.op3)}%</td><td class="n num">${sgn(r.eps3)}%</td>
+        <td class="n num ${dirCls(r.r3 ?? 0)}">${sgn(r.r3)}%</td><td class="n num">${sgn(r.r1)}%</td><td class="n num"><b>${sgn(r.g)}</b></td><td class="n num">${r.pe ?? '–'}</td><td class="n num">${sgn(r.dpe)}%</td><td class="n num">${r.na ?? '?'}</td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="cap">PER 변화(추정) = (1+주가 수익률)÷(1+컨센 변화)−1, 이익이 오른 만큼보다 주가가 덜 오르면 마이너스(싸짐). 커버 수 ?는 와이즈리포트 표가 비어 확인 못 한 종목. 출처: ${esc(sc.src || '')}</p></section>`;
+}
+function drawGapChart(){
+  const el = $('#gapChart'); if (!el) return;
+  const rows = gapRows().filter(r => r.e3 != null && r.r3 != null); if (!rows.length){ el.innerHTML = '<div class="empty">표시할 종목이 없습니다.</div>'; return; }
+  const W = Math.max(300, el.clientWidth || 640), H = Math.min(460, Math.max(320, W * .6)), mg = {l: 46, r: 14, t: 12, b: 34};
+  const clampX = [-40, 100], clampY = [-40, 160];
+  const cx = v => Math.max(clampX[0], Math.min(clampX[1], v)), cy = v => Math.max(clampY[0], Math.min(clampY[1], v));
+  const X = v => mg.l + (cx(v) - clampX[0]) / (clampX[1] - clampX[0]) * (W - mg.l - mg.r), Y = v => mg.t + (1 - (cy(v) - clampY[0]) / (clampY[1] - clampY[0])) * (H - mg.t - mg.b);
+  let g = '';
+  for (const v of [-40, -20, 0, 20, 40, 60, 80, 100]) g += `<line x1="${X(v)}" x2="${X(v)}" y1="${mg.t}" y2="${H - mg.b}" stroke="var(--line)"/><text x="${X(v)}" y="${H - mg.b + 15}" text-anchor="middle">${v}%</text>`;
+  for (const v of [-40, 0, 40, 80, 120, 160]) g += `<line x1="${mg.l}" x2="${W - mg.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${mg.l - 6}" y="${Y(v) + 3.5}" text-anchor="end">${v}%</text>`;
+  g += `<line x1="${X(0)}" x2="${X(0)}" y1="${mg.t}" y2="${H - mg.b}" stroke="var(--line-2)"/><line x1="${mg.l}" x2="${W - mg.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line-2)"/>`;
+  // 대각선(이익 변화 = 주가 변화)과 매수 구역(오른쪽 아래)
+  const zone = `M${X(7)},${Y(7 - 12)} L${X(100)},${Y(100 - 12)} L${X(100)},${Y(-40)} L${X(7)},${Y(-40)} Z`;
+  g += `<path d="${zone}" fill="var(--up-wash)" opacity=".8"/><line x1="${X(-40)}" y1="${Y(-40)}" x2="${X(100)}" y2="${Y(100)}" stroke="var(--ink-2)" stroke-dasharray="4 4" stroke-width="1"/>`;
+  g += `<text class="lab" x="${X(96)}" y="${Y(-34)}" text-anchor="end">이익↑ 주가 덜 감</text><text class="lab" x="${X(-36)}" y="${Y(150)}">주가가 먼저 뜀</text>`;
+  const col = r => r.call === 'buy2' || r.call === 'buy1' ? 'var(--up)' : r.call === 'ahead' ? 'var(--warn)' : r.call === 'down' ? 'var(--down)' : 'var(--muted)';
+  const pts = rows.map((r, i) => `<circle data-i="${i}" cx="${X(r.e3).toFixed(1)}" cy="${Y(r.r3).toFixed(1)}" r="${r.call ? 5 : 3.5}" fill="${col(r)}" fill-opacity="${r.call ? .95 : .55}" stroke="var(--surface)" stroke-width="1.5"/>`).join('');
+  const labs = rows.filter(r => r.call === 'buy2' || r.call === 'buy1').map(r => `<text class="lab" x="${X(r.e3) + 7}" y="${Y(r.r3) + 4}">${esc(r.n)}</text>`).join('');
+  el.innerHTML = `<div class="legend"><span><i style="background:var(--up);height:8px;width:8px;border-radius:50%"></i>매수 콜·관심</span><span><i style="background:var(--warn);height:8px;width:8px;border-radius:50%"></i>주가 선행</span><span><i style="background:var(--down);height:8px;width:8px;border-radius:50%"></i>추정 하향</span><span><i style="background:var(--muted);height:8px;width:8px;border-radius:50%"></i>그 밖</span></div>
+    <svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="컨센 변화와 주가 수익률 산점도">${g}${pts}${labs}</svg><div class="cap">범위 밖 값은 가장자리에 붙여 그렸습니다. 점에 마우스를 올리면 수치가 나옵니다.</div><div class="tip" hidden></div>`;
+  const svg = el.querySelector('svg'), tip = el.querySelector('.tip');
+  svg.querySelectorAll('circle[data-i]').forEach(c => {
+    const show = () => { const r = rows[+c.dataset.i], b = svg.getBoundingClientRect();
+      tip.innerHTML = `<div class="t">${esc(r.n)} · ${esc(S.descByCode[r.c] || r.s)}</div><div class="r"><span>컨센 3개월</span><b class="num">${sgn(r.e3)}%</b></div><div class="r"><span>주가 3개월</span><b class="num">${sgn(r.r3)}%</b></div><div class="r"><span>괴리</span><b class="num">${sgn(r.g)}%p</b></div><div class="r"><span>선행 PER</span><b class="num">${r.pe ?? '–'}배</b></div>${r.call ? `<div style="margin-top:4px">${callPill(r.call, r.isNew)}</div>` : ''}`;
+      tip.hidden = false; const px = (+c.getAttribute('cx')) * b.width / W, py = (+c.getAttribute('cy')) * b.height / H, tw = tip.offsetWidth;
+      tip.style.left = Math.max(0, Math.min(b.width - tw, px + 10)) + 'px'; tip.style.top = Math.max(0, py - 10) + 'px'; };
+    c.addEventListener('pointerenter', show); c.addEventListener('pointerdown', show); c.addEventListener('pointerleave', () => tip.hidden = true);
+  });
+}
+function vMetrics(){
+  const ms = [...S.M.values()].filter(m => passGroup(m) && (S.kind === '전체' || m.kind === S.kind) && passQ(m));
+  if (!S.M.size) return `<div class="panel empty"><b>아직 지표가 없습니다.</b><br>자료를 넣으면 Claude가 지표를 만들고 같은 지표끼리 묶습니다.</div>`;
+  if (!ms.length) return `<div class="panel empty">조건에 맞는 지표가 없습니다.</div>`;
+  const tree = new Map();
+  for (const m of ms){ let g = tree.get(m.group); if (!g) tree.set(m.group, g = new Map()); let s = g.get(m.sub); if (!s) g.set(m.sub, s = []); s.push(m); }
+  const gs = [...tree.keys()].sort((a, b) => (GROUP_ORDER.indexOf(a) + 99) % 99 - (GROUP_ORDER.indexOf(b) + 99) % 99);
+  const lastAsOf = id => S.P.reduce((x, p) => p.m === id && p.asOf > x ? p.asOf : x, '');
+  return `<p class="hint" style="margin:4px 0 0;color:var(--muted)">지표 ${ms.length}개. 줄을 누르면 기간별 값과 추정이 바뀐 흐름이 나옵니다.</p>` + gs.map(g => {
+    const subs = [...tree.get(g)].sort((a, b) => b[1].filter(m => m.entity === '시장').length - a[1].filter(m => m.entity === '시장').length || a[0].localeCompare(b[0], 'ko'));
+    return `<section class="mgroup"><h3>${esc(g)}</h3>${subs.map(([sub, list]) => {
+      list.sort((a, b) => ((a.entity === '시장') === (b.entity === '시장') ? 0 : a.entity === '시장' ? -1 : 1) || (a.kind === b.kind ? 0 : a.kind < b.kind ? -1 : 1) || String(a.name).localeCompare(String(b.name), 'ko'));
+      const open = list.length <= 14 || S.q || S.kind !== '전체';
+      return `<details class="sub" ${open ? 'open' : ''}><summary>${esc(sub)} <small>${list.length}개</small></summary>${list.map(m => metricRow(m, lastAsOf(m.id))).join('')}</details>`;
+    }).join('')}</section>`;
+  }).join('');
+}
+function drawSparks(){
+  document.querySelectorAll('[data-spark]').forEach(el => {
+    const m = S.M.get(el.dataset.spark); if (!m) return;
+    const f = focusOf(m); if (!f || f.pts.length < 2) return;
+    const vs = f.pts.map(p => p.v), mn = Math.min(...vs), mx = Math.max(...vs), W = 88, H = 24, pd = 3;
+    const xs = f.actual ? f.pts.map((p, i) => i) : f.pts.map(p => toMs(p.asOf));
+    const x0 = Math.min(...xs), x1 = Math.max(...xs);
+    const X = x => x1 === x0 ? W/2 : pd + (x - x0) / (x1 - x0) * (W - pd*2), Y = v => mx === mn ? H/2 : H - pd - (v - mn) / (mx - mn) * (H - pd*2);
+    let d = '';
+    f.pts.forEach((p, i) => { const x = X(xs[i]), y = Y(p.v); d += i ? (f.actual ? `L${x},${y}` : `H${x}V${y}`) : `M${x},${y}`; });
+    const lx = X(xs[xs.length-1]), ly = Y(vs[vs.length-1]);
+    el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--ink-2)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${lx}" cy="${ly}" r="3" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"/></svg>`;
+  });
+}
+
+// ───────── 지표 상세
+function vDetail(){
+  const m = S.M.get(S.detail);
+  if (!m) return `<a class="back" href="#metrics">← 지표 목록</a><div class="panel empty">이 지표를 찾을 수 없습니다. 지워졌거나 다른 지표로 합쳐졌을 수 있습니다.</div>`;
+  const pts = S.P.filter(p => p.m === m.id);
+  const srcCount = new Map(); for (const p of pts) srcCount.set(p.src, (srcCount.get(p.src) || 0) + (p.a ? .1 : 1));
+  const srcs = [...srcCount].sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  let sel = S.src[m.id]; if (!sel || !srcs.includes(sel)) sel = srcs.includes('컨센서스') ? '컨센서스' : srcs[0];
+  S.src[m.id] = sel;
+  const periods = [...new Set(pts.map(p => p.p))].sort((a, b) => pKey(a) - pKey(b));
+  // 출처별 표
+  const piv = srcs.map(s => { const row = {s, cells: {}, last: ''}; for (const p of periods){ const arr = pts.filter(x => x.src === s && x.p === p).sort((a, b) => a.asOf < b.asOf ? -1 : 1); if (arr.length){ const l = arr[arr.length-1]; const pr = [...arr].reverse().find(x => x.v !== l.v && !x.a); row.cells[p] = {l, pr}; if (l.asOf > row.last) row.last = l.asOf; } } return row; });
+  const pcols = periods.slice(-10);
+  const raw = [...pts].sort((a, b) => a.asOf < b.asOf ? 1 : a.asOf > b.asOf ? -1 : pKey(b.p) - pKey(a.p));
+  const can = S.canWrite !== false;
+  return `<a class="back" href="#metrics">← 지표 목록</a>
+  <div class="dhead"><div>
+    <h2>${esc(m.name)}</h2>
+    <div class="tags"><span class="tag">${esc(m.group)} · ${esc(m.sub)}</span>${m.entity ? `<span class="tag">${esc(m.entity)}${m.code ? ' ' + esc(m.code) : ''}</span>` : ''}${descOf(m) ? `<span class="tag">${esc(descOf(m))}</span>` : ''}<span class="tag">${esc(m.kind)}</span><span class="tag">단위 ${esc(m.unit || '–')}</span><span class="tag">${esc({Y:'연간',H:'반기',Q:'분기',M:'월간',D:'일간'}[m.freq] || m.freq || '')}</span></div>
+    ${m.def ? `<p>${esc(m.def)}</p>` : ''}
+  </div>${can ? `<button class="btn" data-act="editMetric">${S.editMetric ? '편집 닫기' : '지표 정보 고치기'}</button>` : ''}</div>
+  ${S.editMetric ? metricForm(m) : ''}
+  <div class="row" style="margin-bottom:12px"><span class="lbl">출처</span><div class="chips">${srcs.map(s => `<button class="chip" data-act="src" data-v="${esc(s)}" aria-pressed="${s === sel}">${esc(s)} <small class="num">${pts.filter(p => p.src === s).length}</small></button>`).join('')}</div></div>
+  ${(S.serByM.get(m.id) || []).length ? `<div class="grid2">
+    <section class="panel"><div class="ph"><h2>추정이 바뀐 흐름</h2><span class="hint">${esc(sel)} · 기간별 선</span></div><div id="revChart" class="chart"></div></section>
+    <section class="panel"><div class="ph"><h2>기간별 값</h2><span class="hint">실적은 진하게, 추정은 옅게(${esc(sel)} 최신값)</span></div><div id="perChart" class="chart"></div></section>
+  </div>` : `<section class="panel"><div class="ph"><h2>값의 흐름</h2><span class="hint">발표·집계된 실적과 시세 ${actualSeries(m.id).length}개</span></div><div id="histChart" class="chart"></div></section>`}
+  ${surpriseTable(m)}
+  <section class="panel" style="margin-top:16px"><div class="ph"><h2>출처별 최신값</h2><span class="hint">작은 글씨는 같은 출처의 직전 값 대비</span></div>
+    <div class="tw"><table><thead><tr><th>출처</th>${pcols.map(p => `<th class="n">${esc(showP(p))}</th>`).join('')}<th class="n">최근</th></tr></thead><tbody>
+    ${piv.map(r => `<tr><td>${esc(r.s)}</td>${pcols.map(p => { const c = r.cells[p]; if (!c) return '<td class="n flat">·</td>'; const ch = c.pr ? change(c.pr.v, c.l.v, m.unit) : null; return `<td class="n num" title="${esc(c.l.asOf)}${c.l.n ? ' · ' + esc(c.l.n) : ''}">${c.l.a ? '<b>' : ''}${esc(fmtV(c.l.v, m.unit))}${c.l.a ? '</b>' : ''}${ch ? `<br><small class="${dirCls(ch.d)}">${arrow(ch.d)}${esc(ch.txt.replace(/^[+-]/, ''))}</small>` : ''}</td>`; }).join('')}<td class="n num">${shortDate(r.last)}</td></tr>`).join('')}
+    </tbody></table></div>${periods.length > pcols.length ? `<p class="cap">최근 ${pcols.length}개 기간만 표시. 전체는 아래 원장에 있습니다.</p>` : ''}</section>
+  <section class="panel" style="margin-top:16px"><div class="ph"><h2>원장</h2><span class="hint">숫자 ${raw.length}개</span></div>
+    <div class="tw"><table><thead><tr><th>날짜</th><th>출처</th><th>기간</th><th class="n">값</th><th>구분</th><th>메모</th><th>들어온 자료</th>${can ? '<th></th>' : ''}</tr></thead><tbody>
+    ${raw.slice(0, S.rawN).map(p => `<tr><td class="num">${shortDate(p.asOf)}</td><td>${esc(p.src)}</td><td>${esc(showP(p.p))}</td><td class="n num">${esc(fmtV(p.v, m.unit))}${p.lo != null && p.hi != null ? `<br><small>${esc(fmtNum(p.lo))}~${esc(fmtNum(p.hi))}</small>` : ''}</td><td>${p.a ? '실적' : '추정'}</td><td>${esc(p.n)}</td><td><small>${esc(p.et)}</small></td>${can ? `<td>${delPointCtl(p)}</td>` : ''}</tr>`).join('')}
+    </tbody></table></div>${raw.length > S.rawN ? `<div class="more"><button class="btn" data-act="rawMore">더 보기</button></div>` : ''}</section>`;
+}
+function delPointCtl(p){
+  const key = 'pt:' + p.eid + ':' + p.i;
+  return S.confirm === key ? `<span class="confirm">지울까요? <button class="btn danger" data-act="delPoint" data-e="${esc(p.eid)}" data-i="${p.i}">지우기</button><button class="btn" data-act="cancel">취소</button></span>` : `<button class="linkbtn" data-act="ask" data-k="${esc(key)}">지우기</button>`;
+}
+function metricForm(m){
+  const f = (k, l, extra = '') => `<label>${l}<input data-mf="${k}" value="${esc(m[k] ?? '')}" ${extra}></label>`;
+  return `<div class="panel" style="margin-bottom:16px"><div class="form">
+    ${f('name', '이름')}${f('group', '대분류', 'list="dl-group"')}${f('sub', '세부')}${f('entity', '대상(시장/기업명)')}
+    <label>종류<select data-mf="kind">${KINDS.map(k => `<option ${k === m.kind ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
+    ${f('unit', '단위')}
+    <label>주기<select data-mf="freq">${[['Y','연간'],['H','반기'],['Q','분기'],['M','월간'],['D','일간']].map(([k, l]) => `<option value="${k}" ${k === m.freq ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+    ${f('item', '항목(영업이익 등, 기업만)')}${f('desc', '주요 품목(회사)')}
+    <label class="wide">정의·범위<input data-mf="def" value="${esc(m.def ?? '')}"></label>
+  </div><datalist id="dl-group">${GROUP_ORDER.map(g => `<option>${g}</option>`).join('')}</datalist>
+  <div class="row" style="margin-top:10px"><button class="btn primary" data-act="saveMetric">저장</button><span class="hint">단위를 바꿔도 기록된 값은 환산되지 않습니다.</span></div></div>`;
+}
+
+// ───────── 차트
+function drawDetailCharts(){
+  const m = S.M.get(S.detail); if (!m) return;
+  const sel = S.src[m.id];
+  const pts = S.P.filter(p => p.m === m.id);
+  const allP = [...new Set(pts.map(p => p.p))].sort((a, b) => pKey(a) - pKey(b));
+  const color = p => `var(${SERIES[allP.indexOf(p) % SERIES.length]})`;
+  const hc = $('#histChart');
+  if (hc){ const s = actualSeries(m.id).slice(-400); if (s.length) lineChart(hc, [{label: m.entity && m.entity !== '시장' ? m.entity : '값', color: 'var(--s1)', pts: s.map(p => ({t: pDate(p.p), v: p.v, d: p.p, n: p.n}))}], m.unit, {step: false, label: showP}); return; }
+  // 1) 추정 변화: 선택 출처, 기간마다 선
+  const mine = (S.serByM.get(m.id) || []).filter(s => s.src === sel);
+  let pick = mine.filter(s => s.pts.length > 1);
+  pick = (pick.length ? pick : mine).sort((a, b) => pKey(a.p) - pKey(b.p));
+  if (pick.length > 4){
+    const multi = pick.filter(s => s.pts.length > 1);
+    pick = (multi.length >= 2 ? multi : pick).slice(-4);
+  }
+  const rc = $('#revChart');
+  if (rc){
+    if (!pick.length || pick.every(s => s.pts.length < 2)) rc.innerHTML = `<div class="empty" style="padding:10px 0">${esc(sel)}이(가) 같은 기간을 두 번 이상 말한 기록이 아직 없습니다.<br><small style="color:var(--muted)">같은 출처의 새 자료가 들어오면 선이 생깁니다. 다른 출처를 눌러 보세요.</small></div>`;
+    else lineChart(rc, pick.map(s => ({label: showP(s.p), color: color(s.p), pts: s.pts.map(p => ({t: toMs(p.asOf), v: p.v, d: p.asOf, n: p.n}))})), m.unit);
+  }
+  // 2) 기간별 값
+  const bars = [];
+  for (const p of allP){
+    const acts = pts.filter(x => x.p === p && x.a).sort((a, b) => a.asOf < b.asOf ? -1 : 1);
+    if (acts.length){ const l = acts[acts.length-1]; bars.push({p, v: l.v, a: true, src: l.src, d: l.asOf}); continue; }
+    const es = pts.filter(x => x.p === p && !x.a && x.src === sel).sort((a, b) => a.asOf < b.asOf ? -1 : 1);
+    if (es.length){ const l = es[es.length-1]; bars.push({p, v: l.v, a: false, src: l.src, d: l.asOf, lo: l.lo, hi: l.hi}); }
+  }
+  const pc = $('#perChart');
+  if (pc){ if (!bars.length) pc.innerHTML = `<div class="empty" style="padding:10px 0">표시할 값이 없습니다.</div>`; else barChart(pc, bars.slice(-16), m.unit); }
+}
+function lineChart(el, series, unit, opt = {}){
+  const step = opt.step !== false; // 추정은 계단(다음 수정까지 유지), 실적·시세는 점을 잇는 선
+  const W = Math.max(280, el.clientWidth || 560), H = 236, mg = {l: 54, r: 46, t: 10, b: 24};
+  const all = series.flatMap(s => s.pts);
+  const tMax = step ? Math.max(...all.map(p => p.t), toMs(localToday())) : Math.max(...all.map(p => p.t));
+  let t0 = Math.min(...all.map(p => p.t)), t1 = tMax;
+  if (t1 - t0 < 45 * DAY) t0 -= 30 * DAY;
+  const vs = all.map(p => p.v), sc = axisScale(unit, Math.max(...vs.map(Math.abs)));
+  const yt = niceTicks(Math.min(...vs) / sc.div, Math.max(...vs) / sc.div, 4);
+  const X = t => mg.l + (t - t0) / (t1 - t0) * (W - mg.l - mg.r), Y = v => mg.t + (1 - (v / sc.div - yt.lo) / (yt.hi - yt.lo)) * (H - mg.t - mg.b);
+  const spanD = (t1 - t0) / DAY, xt = [];
+  const st = new Date(t0), stepM = spanD <= 150 ? 1 : spanD <= 760 ? 3 : 12;
+  let d = new Date(Date.UTC(st.getUTCFullYear(), Math.floor(st.getUTCMonth() / stepM) * stepM + stepM, 1));
+  while (d.getTime() <= t1){ xt.push(d.getTime()); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + stepM, 1)); }
+  const xl = t => { const x = new Date(t); return stepM === 12 ? String(x.getUTCFullYear()) : `${String(x.getUTCFullYear()).slice(2)}.${pad2(x.getUTCMonth() + 1)}`; };
+  let g = '';
+  for (const v of yt.ticks){ const y = Y(v * sc.div); g += `<line x1="${mg.l}" x2="${W - mg.r}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="1"/><text x="${mg.l - 8}" y="${y + 3.5}" text-anchor="end">${esc(fmtNum(v))}</text>`; }
+  for (const t of xt){ const x = X(t); g += `<text x="${x}" y="${H - 6}" text-anchor="middle">${xl(t)}</text>`; }
+  let lines = '', dots = '', ends = [];
+  for (const s of series){
+    let dd = '';
+    s.pts.forEach((p, i) => { const x = X(p.t), y = Y(p.v); dd += i ? (step ? `H${x}V${y}` : `L${x},${y}`) : `M${x},${y}`; });
+    const last = s.pts[s.pts.length - 1];
+    if (step) dd += `H${X(t1)}`;
+    lines += `<path d="${dd}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    for (const p of (s.pts.length > 40 ? [last] : s.pts)) dots += `<circle cx="${X(p.t)}" cy="${Y(p.v)}" r="4" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`;
+    ends.push({y: Y(last.v), label: s.label});
+  }
+  ends.sort((a, b) => a.y - b.y);
+  const clash = ends.some((e, i) => i && e.y - ends[i-1].y < 13);
+  const endTxt = clash ? '' : ends.map(e => `<text class="lab" x="${W - mg.r + 6}" y="${e.y + 4}">${esc(e.label)}</text>`).join('');
+  el.innerHTML = (series.length > 1 ? `<div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.label)}</span>`).join('')}</div>` : '') +
+    `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="추정 변화 선 그래프">${g}<line x1="${mg.l}" x2="${W - mg.r}" y1="${H - mg.b}" y2="${H - mg.b}" stroke="var(--line-2)"/>${lines}${dots}${endTxt}<line class="xh" x1="0" x2="0" y1="${mg.t}" y2="${H - mg.b}" stroke="var(--ink-2)" stroke-width="1" visibility="hidden"/><rect class="hit" x="${mg.l}" y="0" width="${W - mg.l - mg.r}" height="${H}" fill="transparent"/></svg>
+    <div class="cap">단위 ${esc(sc.unit || '–')} · ${step ? '점은 자료가 나온 날, 선은 다음 수정 전까지 유지된 값' : '점은 발표·집계된 값'}${clash && series.length > 1 ? ' · 선 이름은 위 범례' : ''}</div><div class="tip" hidden></div>`;
+  const svg = el.querySelector('svg'), tip = el.querySelector('.tip'), xh = el.querySelector('.xh');
+  const dates = [...new Set(all.map(p => p.t))].sort((a, b) => a - b);
+  const move = ev => {
+    const r = svg.getBoundingClientRect(), sx = (ev.clientX - r.left) * W / r.width;
+    let best = dates[0]; for (const t of dates) if (Math.abs(X(t) - sx) < Math.abs(X(best) - sx)) best = t;
+    const x = X(best); xh.setAttribute('x1', x); xh.setAttribute('x2', x); xh.setAttribute('visibility', 'visible');
+    const rows = series.map(s => { let cur = null; for (const p of s.pts) if (p.t <= best) cur = p; const hit = s.pts.find(p => p.t === best); return cur ? `<div class="r"><span><i style="background:${s.color}"></i>${esc(s.label)}${hit ? '' : ' <small style="color:var(--muted)">(유지)</small>'}</span><b class="num">${esc(fmtV(cur.v, unit))}</b></div>${hit && hit.n ? `<div style="color:var(--muted);font-size:11.5px">${esc(hit.n)}</div>` : ''}` : ''; }).join('');
+    const hp = all.find(p => p.t === best);
+    tip.innerHTML = `<div class="t">${opt.label && hp ? esc(opt.label(hp.d)) : new Date(best).toISOString().slice(0, 10)}</div>${rows}`;
+    tip.hidden = false;
+    const px = x * r.width / W, tw = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(r.width - tw, px + (px > r.width / 2 ? -tw - 12 : 12))) + 'px';
+    tip.style.top = (el.querySelector('.legend')?.offsetHeight || 0) + 8 + 'px';
+  };
+  const hit = svg.querySelector('.hit');
+  hit.addEventListener('pointermove', move); hit.addEventListener('pointerdown', move);
+  hit.addEventListener('pointerleave', () => { tip.hidden = true; xh.setAttribute('visibility', 'hidden'); });
+}
+function barChart(el, bars, unit){
+  const W = Math.max(280, el.clientWidth || 560), H = 236, mg = {l: 54, r: 10, t: 18, b: 24};
+  const vs = bars.map(b => b.v), sc = axisScale(unit, Math.max(...vs.map(Math.abs)));
+  const yt = niceTicks(Math.min(0, ...vs) / sc.div, Math.max(0, ...vs) / sc.div, 4);
+  const Y = v => mg.t + (1 - (v / sc.div - yt.lo) / (yt.hi - yt.lo)) * (H - mg.t - mg.b);
+  const band = (W - mg.l - mg.r) / bars.length, bw = Math.max(6, Math.min(24, band * .62));
+  let g = '';
+  for (const v of yt.ticks){ const y = Y(v * sc.div); g += `<line x1="${mg.l}" x2="${W - mg.r}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${mg.l - 8}" y="${y + 3.5}" text-anchor="end">${esc(fmtNum(v))}</text>`; }
+  const y0 = Y(0); let marks = '', labs = '';
+  const showLab = bars.length <= 10, every = Math.ceil(bars.length / Math.max(1, Math.floor((W - mg.l) / 46)));
+  bars.forEach((b, i) => {
+    const cx = mg.l + band * (i + .5), x0 = cx - bw/2, x1 = cx + bw/2, yv = Y(b.v), hgt = Math.abs(y0 - yv), r = Math.min(4, bw/2, hgt);
+    const d = b.v >= 0 ? `M${x0},${y0}V${yv + r}Q${x0},${yv} ${x0 + r},${yv}H${x1 - r}Q${x1},${yv} ${x1},${yv + r}V${y0}Z` : `M${x0},${y0}V${yv - r}Q${x0},${yv} ${x0 + r},${yv}H${x1 - r}Q${x1},${yv} ${x1},${yv - r}V${y0}Z`;
+    marks += `<path d="${d}" fill="var(--s1)" fill-opacity="${b.a ? 1 : .42}" data-i="${i}"/>`;
+    if (showLab) labs += `<text x="${cx}" y="${b.v >= 0 ? yv - 5 : yv + 13}" text-anchor="middle" fill="var(--ink-2)">${esc(fmtNum(b.v / sc.div))}</text>`;
+    if (i % every === 0 || i === bars.length - 1) labs += `<text x="${cx}" y="${H - 6}" text-anchor="middle">${esc(showP(b.p))}${b.a ? '' : 'E'}</text>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="기간별 값 막대 그래프">${g}${marks}<line x1="${mg.l}" x2="${W - mg.r}" y1="${y0}" y2="${y0}" stroke="var(--line-2)"/>${labs}${bars.map((b, i) => `<rect class="hb" data-i="${i}" x="${mg.l + band * i}" y="0" width="${band}" height="${H}" fill="transparent"/>`).join('')}</svg>
+    <div class="cap">단위 ${esc(sc.unit || '–')} · E = 추정</div><div class="tip" hidden></div>`;
+  const svg = el.querySelector('svg'), tip = el.querySelector('.tip');
+  svg.querySelectorAll('.hb').forEach(h => {
+    const show = () => {
+      const b = bars[+h.dataset.i], r = svg.getBoundingClientRect();
+      tip.innerHTML = `<div class="t">${esc(showP(b.p))} ${b.a ? '실적' : '추정'}</div><div class="r"><span>${esc(b.src)}</span><b class="num">${esc(fmtV(b.v, unit))}</b></div>${b.lo != null && b.hi != null ? `<div style="color:var(--muted);font-size:11.5px">범위 ${esc(fmtNum(b.lo))}~${esc(fmtNum(b.hi))}</div>` : ''}<div style="color:var(--muted);font-size:11.5px">${esc(b.d)}</div>`;
+      tip.hidden = false;
+      const px = (mg.l + band * (+h.dataset.i + .5)) * r.width / W, tw = tip.offsetWidth;
+      tip.style.left = Math.max(0, Math.min(r.width - tw, px - tw / 2)) + 'px'; tip.style.top = '4px';
+    };
+    h.addEventListener('pointerenter', show); h.addEventListener('pointerdown', show);
+    h.addEventListener('pointerleave', () => tip.hidden = true);
+  });
+}
+
+// ───────── 자료 넣기
+function vIngest(){
+  const canX = !!S.sample, can = S.canWrite !== false;
+  const d = S.draft;
+  return `<div class="grid2">
+    <section class="panel"><div class="ph"><h2>받은 자료</h2><span class="hint">텔레그램 글·컨콜 메모·리포트 발췌, 표나 차트 캡처</span></div>
+      <div class="drop">
+        <textarea id="inText" placeholder="여기에 붙여 넣으세요. 캡처 이미지는 이 칸에 바로 붙여 넣거나 아래에서 고를 수 있습니다." aria-label="받은 자료">${esc(S.inText)}</textarea>
+        <div class="thumbs">${S.images.map((f, i) => `<figure><img src="${f.url}" alt="첨부 ${i + 1}"><button data-act="rmImg" data-i="${i}" aria-label="첨부 빼기">×</button></figure>`).join('')}</div>
+        <div class="form" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+          <label>자료 날짜(모르면 비워 두기)<input id="inAsOf" type="date" value="${esc(S.inAsOf)}"></label>
+          <label>받은 곳<input id="inVia" placeholder="예: 텔레그램 ○○ 채널" value="${esc(S.inVia)}"></label>
+          <label>캡처 이미지<input id="inImg" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>
+        </div>
+        <div class="row">
+          ${canX ? `<button class="btn primary" data-act="extract" ${S.extracting ? 'disabled' : ''}>Claude로 숫자 뽑기</button>` : ''}
+          ${S.extracting ? `<button class="btn" data-act="stopX">멈추기</button>` : ''}
+          <button class="btn" data-act="manual">직접 입력</button>
+          <span class="status" id="xStatus">${S.extracting ? '읽는 중… 길면 1분쯤 걸립니다' : ''}</span>
+        </div>
+        ${canX ? '' : `<p class="note">이 화면에서는 Claude 추출을 쓸 수 없어 직접 입력만 됩니다. Claude Code 대화창에 자료를 보내도 같은 장부에 들어갑니다.</p>`}
+        ${can ? '' : `<p class="note warn">보기 권한만 있어 저장할 수 없습니다.</p>`}
+      </div>
+    </section>
+    <section class="panel"><div class="ph"><h2>이렇게 정리됩니다</h2></div>
+      <div class="m" style="color:var(--ink-2);font-size:13.5px;line-height:1.7">
+        <p style="margin:0 0 8px">숫자 하나는 <b>무엇을</b>(지표) · <b>어느 기간</b>(2027, 3Q26, 26.09) · <b>얼마</b> · <b>누가</b>(출처) · <b>언제 말했나</b>(자료 날짜)로 저장됩니다.</p>
+        <p style="margin:0 0 8px">같은 지표·같은 기간을 같은 출처가 다시 말하면 ‘변화’ 화면에 상향·하향으로 잡힙니다. “6월 대비 +7% 상향”처럼 이전 값을 알 수 있으면 이전 값도 그 날짜로 함께 넣습니다.</p>
+        <p style="margin:0">컨센서스는 반도체 탑픽 도구가 매일 받는 와이즈리포트 값을 Claude가 따로 넣습니다.</p>
+      </div>
+    </section>
+  </div>
+  ${d ? reviewPanel(d) : ''}`;
+}
+function metricOptions(sel){
+  const opts = [];
+  const news = (S.draft?.newMetrics || []).filter(n => n.id);
+  if (news.length) opts.push(`<optgroup label="새 지표">${news.map(n => `<option value="${esc(n.id)}" ${n.id === sel ? 'selected' : ''}>${esc(n.name || n.id)} (새)</option>`).join('')}</optgroup>`);
+  const groups = new Map();
+  for (const m of [...S.M.values()].sort((a, b) => String(a.name).localeCompare(String(b.name), 'ko'))){ let g = groups.get(m.group); if (!g) groups.set(m.group, g = []); g.push(m); }
+  for (const [g, list] of groups) opts.push(`<optgroup label="${esc(g)}">${list.map(m => `<option value="${esc(m.id)}" ${m.id === sel ? 'selected' : ''}>${esc(m.name)} · ${esc(m.unit)}</option>`).join('')}</optgroup>`);
+  return `<option value="">지표 고르기</option>` + opts.join('');
+}
+function reviewPanel(d){
+  const e = d.entry, can = S.canWrite !== false;
+  const nIn = d.pts.filter(p => p.inc).length;
+  const unitOf = id => (d.newMetrics.find(n => n.id === id) || S.M.get(id) || {}).unit || '';
+  return `<section class="panel" style="margin-top:16px" aria-labelledby="h-rev"><div class="ph"><h2 id="h-rev">저장 전 확인</h2><span class="hint">틀린 칸은 고치고, 뺄 숫자는 체크를 끄세요</span></div>
+    <div class="form">
+      <label>자료 날짜<input type="date" data-ef="asOf" value="${esc(e.asOf)}"></label>
+      <label>대표 출처<input data-ef="src" list="dl-src" value="${esc(e.src)}"></label>
+      <label>출처 종류<select data-ef="st">${STS.map(s => `<option ${s === e.st ? 'selected' : ''}>${s}</option>`).join('')}</select></label>
+      <label>받은 곳<input data-ef="via" value="${esc(e.via)}"></label>
+      <label class="wide">제목<input data-ef="title" value="${esc(e.title)}"></label>
+      <label class="wide">요약<input data-ef="memo" value="${esc(e.memo)}"></label>
+    </div>
+    <datalist id="dl-src">${[...new Set(S.P.map(p => p.src))].map(s => `<option>${esc(s)}</option>`).join('')}</datalist>
+    ${d.newMetrics.length ? `<div style="margin-top:14px" class="lbl">새로 만들 지표</div><div style="display:grid;gap:10px;margin-top:6px">${d.newMetrics.map((n, i) => `<div class="newm"><div class="form">
+      <label>이름<input data-nf="name" data-i="${i}" value="${esc(n.name)}"></label>
+      <label>id(영문)<input data-nf="id" data-i="${i}" value="${esc(n.id)}" pattern="[a-z0-9-]+"></label>
+      <label>대분류<input data-nf="group" data-i="${i}" list="dl-group2" value="${esc(n.group)}"></label>
+      <label>세부<input data-nf="sub" data-i="${i}" value="${esc(n.sub)}"></label>
+      <label>대상<input data-nf="entity" data-i="${i}" value="${esc(n.entity)}"></label>
+      <label>종류<select data-nf="kind" data-i="${i}">${KINDS.map(k => `<option ${k === n.kind ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
+      <label>단위<input data-nf="unit" data-i="${i}" value="${esc(n.unit)}"></label>
+      <label>주기<select data-nf="freq" data-i="${i}">${[['Y','연간'],['H','반기'],['Q','분기'],['M','월간']].map(([k, l]) => `<option value="${k}" ${k === n.freq ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="wide">정의·범위<input data-nf="def" data-i="${i}" value="${esc(n.def)}"></label>
+    </div></div>`).join('')}</div><datalist id="dl-group2">${GROUP_ORDER.map(g => `<option>${g}</option>`).join('')}</datalist>` : ''}
+    <div style="margin-top:14px" class="lbl">숫자 ${d.pts.length}개 중 ${nIn}개 저장</div>
+    <div class="tw" style="margin-top:6px"><table><thead><tr><th>넣기</th><th>지표</th><th>기간</th><th class="n">값</th><th>단위</th><th>실적</th><th>말한 날(다르면)</th><th>출처(다르면)</th><th>메모</th><th></th></tr></thead><tbody>
+    ${d.pts.map((p, i) => `<tr>
+      <td><input type="checkbox" data-pf="inc" data-i="${i}" ${p.inc ? 'checked' : ''} aria-label="넣기"></td>
+      <td class="cell w"><select data-pf="m" data-i="${i}">${metricOptions(p.m)}</select></td>
+      <td class="cell p"><input data-pf="p" data-i="${i}" value="${esc(p.p)}" placeholder="2027"${p.p && !PERIOD_RE.test(p.p) ? ' style="border-color:var(--up)"' : ''}></td>
+      <td class="cell"><input data-pf="v" data-i="${i}" value="${esc(p.v)}" inputmode="decimal"></td>
+      <td><small>${esc(unitOf(p.m))}</small></td>
+      <td><input type="checkbox" data-pf="a" data-i="${i}" ${p.a ? 'checked' : ''} aria-label="실적"></td>
+      <td class="cell"><input type="date" data-pf="asOf" data-i="${i}" value="${esc(p.asOf || '')}"></td>
+      <td class="cell"><input data-pf="src" data-i="${i}" list="dl-src" value="${esc(p.src || '')}"></td>
+      <td class="cell w"><input data-pf="n" data-i="${i}" value="${esc(p.n || '')}"></td>
+      <td><button class="linkbtn" data-act="rmRow" data-i="${i}">빼기</button></td></tr>`).join('')}
+    </tbody></table></div>
+    ${d.skipped?.length ? `<details style="margin-top:10px"><summary class="hint" style="cursor:pointer">Claude가 뺀 숫자 ${d.skipped.length}개</summary><ul style="color:var(--ink-2);font-size:13px">${d.skipped.map(s => `<li>${esc(s)}</li>`).join('')}</ul></details>` : ''}
+    <div class="row" style="margin-top:12px">
+      <button class="btn" data-act="addRow">줄 추가</button>
+      ${can ? `<button class="btn primary" data-act="saveDraft">장부에 저장</button>` : ''}
+      <button class="btn" data-act="dropDraft">버리기</button>
+      <span class="status" id="saveStatus"></span>
+    </div>
+  </section>`;
+}
+function catalogText(){
+  const lines = [], cos = new Map();
+  for (const m of S.M.values()){
+    if (/^co-\d{6}-/.test(m.id)){ const code = m.id.slice(3, 9); const o = cos.get(code) || {name: m.entity || m.name, items: []}; o.items.push(m.id.slice(10) + '=' + (m.item || '')); cos.set(code, o); continue; }
+    lines.push(`${m.id} | ${m.name} | ${m.unit} | ${m.freq} | ${m.group}/${m.sub}`);
+  }
+  const co = [...cos].map(([c, o]) => `co-${c}-* | ${o.name} | ${o.items.join(', ')} | 억원 | Y`);
+  return lines.join('\n') + (co.length ? '\n[한국 상장사 실적 지표: co-<코드>-op(영업이익)/-rev(매출)/-np(순이익), 단위 억원, 연간]\n' + co.join('\n') : '');
+}
+function buildPrompt(text){
+  const srcs = [...new Set(S.P.filter(p => p.st !== '컨센서스').map(p => p.src))].slice(0, 120);
+  return `너는 한 개인 투자자의 '산업 숫자 장부'에 기록할 숫자를 뽑는 보조다. 아래 [받은 자료](텔레그램 글, 컨콜 메모, 리포트 발췌, 첨부된 표·차트 캡처)에서 시간이 지나며 다시 갱신될 숫자를 찾아 JSON 하나로만 답하라.
+
+오늘: ${localToday()}
+자료 날짜(사용자 입력): ${S.inAsOf || '없음 — 본문에서 찾고, 없으면 오늘'}
+받은 곳: ${S.inVia || '없음'}
+
+뽑을 것: 시장 규모·TAM, 출하량·물량, 가격(계약가·현물가·판가 인상률), 캐파·가동률, 점유율, 설비투자, 기업 실적·가이던스·증권사 추정, 컨센서스.
+뺄 것: 목표주가·투자의견, 정의가 불분명한 숫자, 다시 나올 일 없는 일회성 숫자.
+
+규칙
+1. 기존 지표와 같은 것을 말하면 반드시 그 id를 m에 쓴다. 범위·기준이 다르면 새 지표를 만든다.
+2. 새 지표 id는 영문 소문자·숫자·하이픈만. 접두어 mkt-(시장규모) ship-(출하·물량) px-(가격) cap-(캐파·가동률) shr-(점유율) capex-(투자) co-(기업; 한국 상장사는 co-<6자리코드>-op / -rev / -np) etc-.
+3. group은 반도체, AI 인프라, 전자부품·기판, 전력·에너지, 2차전지·소재, 기타 중 하나. sub는 짧은 한국어(메모리, HBM, 낸드, 파운드리, 장비, 후공정, 서버, 네트워크, 광통신, 데이터센터, 기판, MLCC, 전력기기 등).
+4. kind는 ${KINDS.join(', ')} 중 하나. 기업 지표면 item에 영업이익·매출·순이익 등.
+5. 단위는 지표마다 하나. 값을 그 단위로 환산한다(1.64조달러 → 16400 억달러). 기존 지표면 그 지표의 단위로.
+6. p(기간): "2026", "2026H2", "2026Q3", "2026-09". 회계연도가 다르면 가까운 달력연도로 쓰고 n에 "FY28(1월 결산)".
+7. 이미 발표된 실적은 a:1, 전망·추정은 a:0.
+8. 범위(6~8%)는 v=가운데, lo/hi=양끝. 아니면 lo/hi는 null.
+9. "종전 X → Y", "6월 대비 +7% 상향"처럼 이전 추정을 알 수 있으면 같은 출처의 이전 값을 point로 하나 더 넣고 asOf를 그 시점(월말로 근사)으로, n에 "종전" 또는 "(역산)". 이 장부의 핵심은 추정이 어떻게 바뀌어 왔는지다.
+10. 한 자료에 출처가 여럿이면 point마다 src를 쓴다(entry.src와 같으면 빈칸). 출처 이름은 [기존 출처] 표기를 그대로 쓴다.
+11. st(출처 종류): ${STS.filter(s => s !== '실적').join(' | ')}.
+12. title·memo·n·def는 쉬운 한국어로, 원문 문장을 옮기지 말고 짧게.
+
+[기존 지표] id | 이름 | 단위 | 주기 | 대분류/세부
+${catalogText() || '(아직 없음)'}
+
+[기존 출처]
+${srcs.join(', ') || '(아직 없음)'}
+
+[받은 자료]
+<<<
+${text.slice(0, 60000)}
+>>>
+${S.images.length ? `(첨부 이미지 ${S.images.length}장: 표·차트 캡처. 숫자를 읽어 같은 규칙으로 넣어라.)` : ''}
+
+답 형식(JSON 하나만):
+{"entry":{"asOf":"YYYY-MM-DD","src":"대표 출처","st":"리서치","title":"한 줄 제목","memo":"한두 문장 요약"},
+ "newMetrics":[{"id":"mkt-...","name":"...","group":"...","sub":"...","entity":"시장","kind":"시장규모","item":"","unit":"억달러","freq":"Y","def":"정의 한 줄"}],
+ "pts":[{"m":"지표 id","p":"2026","v":0,"a":0,"lo":null,"hi":null,"n":"","asOf":"","src":""}],
+ "skipped":["뺀 숫자와 이유 한 줄"]}`;
+}
+function normDraft(j){
+  const e = j?.entry || {};
+  const draft = {
+    entry: {asOf: /^\d{4}-\d{2}-\d{2}$/.test(e.asOf || '') ? e.asOf : (S.inAsOf || localToday()), src: String(e.src || ''), st: STS.includes(e.st) ? e.st : '기타', via: S.inVia || String(e.via || ''), title: String(e.title || ''), memo: String(e.memo || '')},
+    newMetrics: (Array.isArray(j?.newMetrics) ? j.newMetrics : []).filter(n => n && n.id && !S.M.has(n.id)).map(n => ({id: String(n.id).toLowerCase().replace(/[^a-z0-9-]/g, '-'), name: String(n.name || n.id), group: String(n.group || '기타'), sub: String(n.sub || ''), entity: String(n.entity || '시장'), kind: KINDS.includes(n.kind) ? n.kind : '기타', item: String(n.item || ''), unit: String(n.unit || ''), freq: ['Y','H','Q','M'].includes(n.freq) ? n.freq : 'Y', def: String(n.def || '')})),
+    pts: (Array.isArray(j?.pts) ? j.pts : []).map(p => ({inc: true, m: String(p?.m || ''), p: String(p?.p ?? ''), v: p?.v ?? '', a: !!p?.a, lo: isFinite(p?.lo) && p?.lo !== null ? +p.lo : null, hi: isFinite(p?.hi) && p?.hi !== null ? +p.hi : null, asOf: /^\d{4}-\d{2}-\d{2}$/.test(p?.asOf || '') ? p.asOf : '', src: String(p?.src || ''), n: String(p?.n || '')})),
+    skipped: (Array.isArray(j?.skipped) ? j.skipped : []).map(String)
+  };
+  for (const p of draft.pts) if (p.asOf === draft.entry.asOf) p.asOf = '';
+  return draft;
+}
+async function runExtract(){
+  const text = S.inText.trim();
+  if (!text && !S.images.length){ toast('붙여 넣은 내용이나 캡처가 없습니다'); return; }
+  const ctl = new AbortController(); S.extracting = ctl; render();
+  try {
+    const opts = {signal: ctl.signal, modelTier: 'default', onText: ({text}) => { const s = $('#xStatus'); if (s) s.textContent = `쓰는 중… ${text.length.toLocaleString('ko-KR')}자`; }};
+    if (S.images.length) opts.images = S.images.map(f => f.file);
+    const j = await S.sample.json(buildPrompt(text || '(본문 없음, 첨부 이미지만)'), opts);
+    S.draft = normDraft(j);
+    toast(`숫자 ${S.draft.pts.length}개를 찾았습니다. 확인 후 저장하세요`);
+  } catch (e){
+    const msg = {cancelled: '', not_granted: 'Claude 사용을 허용하지 않아 추출을 쓸 수 없습니다. 직접 입력은 됩니다.', rate_limited: '요청이 많습니다. 잠시 뒤 다시 눌러 주세요.', invalid_json: '답을 표로 읽지 못했습니다. 다시 눌러 보거나 자료를 나눠 넣어 주세요.', prompt_too_large: '자료가 너무 깁니다. 나눠서 넣어 주세요.', image_rejected: '이 이미지는 읽을 수 없습니다. PNG·JPG로 다시 골라 주세요.', refused: '이 자료는 처리할 수 없다고 합니다. 내용을 줄여 보세요.'}[e?.code] ?? '추출이 중간에 끊겼습니다. 다시 눌러 주세요.';
+    if (e?.code === 'not_granted' || e?.code === 'sampling_disabled') S.sample = null;
+    if (msg) toast(msg);
+  } finally { S.extracting = null; render(); }
+}
+async function saveDraft(){
+  const d = S.draft; if (!d || !S.db) return;
+  const st = $('#saveStatus');
+  const rows = d.pts.filter(p => p.inc);
+  const bad = rows.find(p => !p.m || !PERIOD_RE.test(p.p) || p.v === '' || !isFinite(+String(p.v).replace(/,/g, '')));
+  if (!rows.length){ st.textContent = '저장할 숫자가 없습니다.'; return; }
+  if (bad){ st.innerHTML = `<span class="warn">지표·기간(2027, 2026Q3, 2026-09)·값이 빠지거나 틀린 줄이 있습니다.</span>`; return; }
+  if (!d.entry.asOf || !d.entry.src){ st.innerHTML = `<span class="warn">자료 날짜와 대표 출처를 채워 주세요.</span>`; return; }
+  st.textContent = '저장 중…';
+  try {
+    const used = new Set(rows.map(p => p.m));
+    for (const n of d.newMetrics){
+      if (!used.has(n.id) || S.metricDocs.has(n.id)) continue;
+      if (!/^[a-z0-9][a-z0-9-]{1,80}$/.test(n.id)) throw {code: 'bad_id', id: n.id};
+      await S.db.collection('metrics').doc(n.id).set({...n, createdAt: localToday()});
+    }
+    const pts = rows.map(p => { const o = {m: p.m, p: p.p, v: +String(p.v).replace(/,/g, '')}; if (p.a) o.a = 1; if (p.lo != null && isFinite(p.lo)) o.lo = +p.lo; if (p.hi != null && isFinite(p.hi)) o.hi = +p.hi; if (p.asOf && p.asOf !== d.entry.asOf) o.asOf = p.asOf; if (p.src && p.src !== d.entry.src) o.src = p.src; if (p.n) o.n = p.n; return o; });
+    const id = `e-${d.entry.asOf.replace(/-/g, '')}-${uid()}`;
+    await S.db.collection('entries').doc(id).set({...d.entry, pts, addedAt: new Date().toISOString(), by: 'page'});
+    S.draft = null; S.inText = ''; S.images = []; S.inAsOf = ''; S.inVia = '';
+    toast(`장부에 숫자 ${pts.length}개를 저장했습니다`);
+    location.hash = '#changes';
+  } catch (e){
+    st.innerHTML = `<span class="warn">${e?.code === 'bad_id' ? `새 지표 id "${esc(e.id)}"는 영문 소문자·숫자·하이픈만 쓸 수 있습니다.` : e?.code === 'quota_exceeded' ? '장부 저장 공간이 찼습니다. Claude에게 오래된 기록 정리를 부탁하세요.' : '저장하지 못했습니다. 권한이 없거나 연결이 끊겼습니다. 잠시 뒤 다시 눌러 주세요.'}</span>`;
+  }
+}
+
+// ───────── 기록
+function vLog(){
+  const list = [...S.entries.values()].filter(e => {
+    if (!S.q) return true; const hay = [e.title, e.src, e.via, e.memo].join(' ').toLowerCase(); return S.q.toLowerCase().split(/\s+/).every(w => hay.includes(w));
+  }).filter(e => S.group === '전체' || (e.pts || []).some(p => S.M.get(p.m)?.group === S.group))
+    .sort((a, b) => (a.asOf || '') < (b.asOf || '') ? 1 : (a.asOf || '') > (b.asOf || '') ? -1 : (a.addedAt || '') < (b.addedAt || '') ? 1 : -1);
+  const can = S.canWrite !== false;
+  if (!list.length) return `<div class="panel empty">들어온 자료가 없습니다.</div>`;
+  return `<section class="panel"><div class="ph"><h2>들어온 자료</h2><span class="row"><span class="hint">${list.length}건</span>${S.dl ? `<button class="btn" data-act="csv">전체 숫자 CSV로 받기</button>` : ''}</span></div>
+  ${list.map(e => {
+    const n = (e.pts || []).length, open = S.openEntry === e.id, key = 'en:' + e.id;
+    return `<div class="entry"><div class="eh"><span class="num">${shortDate(e.asOf)}</span><b>${esc(e.title || e.src)}</b><span class="tag ${e.st === '컨센서스' ? 'cons' : ''}">${esc(e.src)}</span><span class="hint" style="color:var(--muted);font-size:12.5px">${esc(e.via || '')} · 숫자 ${n}개 · ${e.by === 'claude' ? 'Claude가 넣음' : '이 화면에서 넣음'}</span></div>
+      ${e.memo ? `<div class="m">${esc(e.memo)}</div>` : ''}
+      ${/^https:\/\/t\.me\//.test(e.url || '') ? `<div class="m"><a href="${esc(e.url)}" target="_blank" rel="noopener">텔레그램 원문 보기 ↗</a></div>` : ''}
+      <div class="row" style="margin-top:6px"><button class="linkbtn" data-act="openEntry" data-v="${esc(e.id)}">${open ? '숫자 닫기' : '숫자 보기'}</button>
+      ${can ? (S.confirm === key ? `<span class="confirm">이 자료와 숫자 ${n}개를 지울까요? <button class="btn danger" data-act="delEntry" data-v="${esc(e.id)}">지우기</button><button class="btn" data-act="cancel">취소</button></span>` : `<button class="linkbtn" style="color:var(--muted)" data-act="ask" data-k="${esc(key)}">지우기</button>`) : ''}</div>
+      ${open ? `<div class="tw" style="margin-top:8px"><table><thead><tr><th>지표</th><th>기간</th><th class="n">값</th><th>구분</th><th>메모</th></tr></thead><tbody>${(e.pts || []).slice(0, 400).map(p => { const m = S.M.get(p.m) || {name: p.m, unit: ''}; return `<tr><td><a href="#m-${esc(p.m)}">${esc(m.name)}</a>${p.src ? `<br><small>${esc(p.src)}</small>` : ''}</td><td>${esc(showP(String(p.p)))}${p.asOf ? `<br><small>${esc(p.asOf)}</small>` : ''}</td><td class="n num">${esc(fmtV(p.v, m.unit))}</td><td>${p.a ? '실적' : '추정'}</td><td>${esc(p.n || '')}</td></tr>`; }).join('')}</tbody></table></div>` : ''}
+    </div>`;
+  }).join('')}</section>`;
+}
+async function exportCsv(){
+  const cols = ['자료날짜','대분류','세부','지표','대상','지표id','기간','값','단위','구분','출처','출처종류','받은곳','메모','들어온자료'];
+  const q = s => { s = String(s ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const rows = [...S.P].sort((a, b) => a.asOf < b.asOf ? -1 : 1).map(p => { const m = S.M.get(p.m) || {}; return [p.asOf, m.group, m.sub, m.name, m.entity, p.m, p.p, p.v, m.unit, p.a ? '실적' : '추정', p.src, p.st, p.via, p.n, p.et].map(q).join(','); });
+  try { await S.dl.save({filename: `산업숫자장부_${localToday().replace(/-/g, '')}.csv`, data: '﻿' + cols.join(',') + '\n' + rows.join('\n')}); toast('CSV를 저장했습니다'); }
+  catch (e){ if (e?.code !== 'declined') toast('이 화면에서는 파일을 저장할 수 없습니다'); }
+}
+
+// ───────── 쓰기
+async function delEntry(id){ try { await S.db.collection('entries').doc(id).delete(); S.confirm = null; toast('자료를 지웠습니다'); } catch { toast('지우지 못했습니다. 권한을 확인해 주세요'); } }
+async function delPoint(eid, i){
+  const e = S.entries.get(eid); if (!e) return;
+  const pts = (e.pts || []).filter((_, k) => k !== i);
+  try { await S.db.collection('entries').doc(eid).update({pts}); S.confirm = null; toast('숫자 하나를 지웠습니다'); } catch { toast('지우지 못했습니다. 권한을 확인해 주세요'); }
+}
+async function saveMetric(){
+  const m = S.M.get(S.detail); if (!m) return;
+  const o = {}; document.querySelectorAll('[data-mf]').forEach(el => o[el.dataset.mf] = el.value.trim());
+  try {
+    const ref = S.db.collection('metrics').doc(m.id);
+    if (S.metricDocs.has(m.id)) await ref.update(o); else await ref.set({...Object.fromEntries(Object.entries(m).filter(([k]) => !k.startsWith('_') && k !== 'id')), ...o, createdAt: localToday()});
+    S.editMetric = false; toast('지표 정보를 고쳤습니다');
+  } catch { toast('저장하지 못했습니다. 권한을 확인해 주세요'); }
+}
+
+// ───────── 이벤트
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act, v = b.dataset.v;
+  if (b.tagName === 'INPUT') return; // 체크박스는 change에서
+  ev.preventDefault();
+  if (a === 'group'){ S.group = v; S.feedN = 60; render(); }
+  else if (a === 'win'){ S.win = +v; S.feedN = 60; render(); }
+  else if (a === 'feedMore'){ S.feedN += 80; render(); }
+  else if (a === 'evType'){ S.evType = v; S.evN = 12; render(); }
+  else if (a === 'gapSector'){ S.gapSector = v; render(); }
+  else if (a === 'gapCall'){ S.gapCall = v; render(); }
+  else if (a === 'gapSort'){ if (S.gapSort === v) S.gapDir *= -1; else { S.gapSort = v; S.gapDir = -1; } render(); }
+  else if (a === 'evMore'){ S.evN += 20; render(); }
+  else if (a === 'consItem'){ S.consItem = v; render(); }
+  else if (a === 'consYear'){ S.consYear = v; render(); }
+  else if (a === 'src'){ S.src[S.detail] = v; render(); }
+  else if (a === 'editMetric'){ S.editMetric = !S.editMetric; render(); }
+  else if (a === 'saveMetric') saveMetric();
+  else if (a === 'rawMore'){ S.rawN += 200; render(); }
+  else if (a === 'ask'){ S.confirm = b.dataset.k; render(); }
+  else if (a === 'cancel'){ S.confirm = null; render(); }
+  else if (a === 'delEntry') delEntry(v);
+  else if (a === 'delPoint') delPoint(b.dataset.e, +b.dataset.i);
+  else if (a === 'openEntry'){ S.openEntry = S.openEntry === v ? null : v; render(); }
+  else if (a === 'csv') exportCsv();
+  else if (a === 'extract') runExtract();
+  else if (a === 'stopX') S.extracting?.abort();
+  else if (a === 'manual'){ S.draft = S.draft || {entry: {asOf: S.inAsOf || localToday(), src: '', st: '기타', via: S.inVia, title: '', memo: ''}, newMetrics: [], pts: [], skipped: []}; S.draft.pts.push({inc: true, m: '', p: '', v: '', a: false, lo: null, hi: null, asOf: '', src: '', n: ''}); render(); }
+  else if (a === 'addRow'){ S.draft.pts.push({inc: true, m: '', p: '', v: '', a: false, lo: null, hi: null, asOf: '', src: '', n: ''}); render(); }
+  else if (a === 'rmRow'){ S.draft.pts.splice(+b.dataset.i, 1); render(); }
+  else if (a === 'dropDraft'){ S.draft = null; render(); }
+  else if (a === 'saveDraft') saveDraft();
+  else if (a === 'rmImg'){ const f = S.images.splice(+b.dataset.i, 1)[0]; if (f) URL.revokeObjectURL(f.url); render(); }
+});
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (t.dataset.act === 'showCons'){ S.showCons = t.checked; render(); }
+  else if (t.dataset.act === 'showCross'){ S.showCross = t.checked; render(); }
+  else if (t.id === 'kindSel'){ S.kind = t.value; render(); }
+  else if (t.id === 'inImg'){ addImages([...t.files]); }
+  else if (t.dataset.pf === 'inc' || t.dataset.pf === 'a'){ S.draft.pts[+t.dataset.i][t.dataset.pf] = t.checked; render(); }
+  else if (t.dataset.pf === 'm'){ S.draft.pts[+t.dataset.i].m = t.value; render(); }
+  else if (t.dataset.nf){ updNew(t); render(); }
+  else if (t.dataset.ef){ S.draft.entry[t.dataset.ef] = t.value; }
+});
+document.addEventListener('input', ev => {
+  const t = ev.target;
+  if (t.id === 'q'){ S.q = t.value; clearTimeout(S.qh); S.qh = setTimeout(() => { const pos = t.selectionStart; render(); const q = $('#q'); if (q){ q.focus(); try { q.setSelectionRange(pos, pos); } catch {} } }, 220); }
+  else if (t.id === 'inText') S.inText = t.value;
+  else if (t.id === 'inAsOf') S.inAsOf = t.value;
+  else if (t.id === 'inVia') S.inVia = t.value;
+  else if (t.dataset.ef) S.draft.entry[t.dataset.ef] = t.value;
+  else if (t.dataset.pf && t.type !== 'checkbox' && t.tagName !== 'SELECT') S.draft.pts[+t.dataset.i][t.dataset.pf] = t.value;
+  else if (t.dataset.nf && t.tagName !== 'SELECT') updNew(t);
+});
+function updNew(t){
+  const n = S.draft.newMetrics[+t.dataset.i], k = t.dataset.nf;
+  if (k === 'id'){ const old = n.id; n.id = t.value.trim(); for (const p of S.draft.pts) if (p.m === old) p.m = n.id; }
+  else n[k] = t.value;
+}
+document.addEventListener('paste', ev => {
+  if (S.view !== 'ingest') return;
+  const files = [...(ev.clipboardData?.files || [])].filter(f => /^image\//.test(f.type));
+  if (files.length){ ev.preventDefault(); addImages(files); }
+});
+function addImages(files){
+  for (const f of files.slice(0, 6 - S.images.length)) if (/^image\/(png|jpeg|webp|gif)$/.test(f.type)) S.images.push({file: f, url: URL.createObjectURL(f)});
+  render();
+}
+function route(){
+  const h = location.hash.slice(1);
+  S.confirm = null;
+  if (h.startsWith('m-')){ if (S.detail !== h.slice(2)) { S.editMetric = false; S.rawN = 120; } S.detail = h.slice(2); S.view = 'detail'; }
+  else S.view = ['changes', 'metrics', 'board', 'gap', 'ingest', 'log'].includes(h) && !(h === 'ingest' && window.__LEDGER_STATIC) ? h : 'changes';
+  render(); window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (S.view === 'detail') drawDetailCharts(); if (S.view === 'gap') drawGapChart(); }, 150); });
+
+// ───────── 시작
+let pending = false;
+function schedule(){
+  if (pending) return; pending = true;
+  setTimeout(() => { // 숨은 탭에서도 그려지도록 requestAnimationFrame 대신
+    pending = false; derive();
+    // 입력 중인 화면은 다시 그리지 않는다(머리·숫자 줄만 갱신)
+    if (S.view === 'ingest' || (S.view === 'detail' && S.editMetric)) renderTop(); else render();
+  }, 16);
+}
+const use = n => (window.claude && typeof window.claude.use === 'function') ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
+route();
+(async () => {
+  const [db, user, sample, dl] = await Promise.all([use('db'), use('user'), use('sample'), use('downloads')]);
+  S.sample = sample; S.dl = dl;
+  if (!db){ S.noDb = true; render(); return; }
+  S.db = db;
+  const fail = e => { if (e?.code === 'revoked'){ S.noDb = true; render(); } };
+  db.collection('metrics').onSnapshot(snap => { S.metricDocs = new Map(snap.docs.map(d => [d.id, d.data()])); S.got.m = true; schedule(); }, fail);
+  db.doc('info/desc').onSnapshot(d => { S.descByCode = (d.exists && d.data().byCode) || {}; schedule(); }, fail);
+  db.collection('screens').orderBy('asOf', 'desc').limit(3).onSnapshot(snap => { S.screens = snap.docs.map(d => ({...d.data(), id: d.id})); schedule(); }, fail);
+  db.collection('entries').onSnapshot(snap => { S.entries = new Map(snap.docs.map(d => [d.id, {...d.data(), id: d.id}])); S.got.e = true; schedule(); }, fail);
+  if (user){ try { S.canWrite = await user.can('data.write'); } catch { S.canWrite = null; } }
+  if (S.view === 'ingest') render();
+})();
+})();
+</script>
+</body>
+</html>
