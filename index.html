@@ -249,9 +249,9 @@ details.sub>summary small{color:var(--muted);font-weight:400}
 @media (prefers-reduced-motion:no-preference){.rev,.mrow{transition:background .12s}}
 </style>
 <script>
-window.__LEDGER_STATIC = true; window.__LEDGER_BUILT = "2026-10-09 23:22";
+window.__LEDGER_STATIC = true; window.__LEDGER_BUILT = "2026-10-10 10:43";
 (function(){
-  var P = fetch('data/ledger.json?v=' + "202610092322").then(function(r){ return r.json(); });
+  var P = fetch('data/ledger.json?v=' + "202610101043").then(function(r){ return r.json(); });
   var no = function(){ return Promise.reject({code: 'not_granted'}); };
   function coll(name){
     return { orderBy: function(){ return this; }, limit: function(){ return this; },
@@ -1075,7 +1075,10 @@ function drawDetailCharts(){
   const allP = [...new Set(pts.map(p => p.p))].sort((a, b) => pKey(a) - pKey(b));
   const color = p => `var(${SERIES[allP.indexOf(p) % SERIES.length]})`;
   const hc = $('#histChart');
-  if (hc){ const s = actualSeries(m.id).slice(-400); if (s.length) lineChart(hc, [{label: m.entity && m.entity !== '시장' ? m.entity : '값', color: 'var(--s1)', pts: s.map(p => ({t: pDate(p.p), v: p.v, d: p.p, n: p.n}))}], m.unit, {step: false, label: showP}); return; }
+  // 월 자료가 13개월 넘게 쌓였으면 증권사 차트처럼 막대(월 값) + 선(전년 대비, 오른쪽 축)
+  const hs = hc ? actualSeries(m.id) : [];
+  if (hc && hs.length >= 13 && hs.every(p => /^\d{4}-\d{2}$/.test(p.p))) yoyBarChart(hc, hs, m.unit);
+  else if (hc){ const s = actualSeries(m.id).slice(-400); if (s.length) lineChart(hc, [{label: m.entity && m.entity !== '시장' ? m.entity : '값', color: 'var(--s1)', pts: s.map(p => ({t: pDate(p.p), v: p.v, d: p.p, n: p.n}))}], m.unit, {step: false, label: showP}); return; }
   // 1) 추정 변화: 선택 출처, 기간마다 선
   const mine = (S.serByM.get(m.id) || []).filter(s => s.src === sel);
   let pick = mine.filter(s => s.pts.length > 1);
@@ -1099,6 +1102,35 @@ function drawDetailCharts(){
   }
   const pc = $('#perChart');
   if (pc){ if (!bars.length) pc.innerHTML = `<div class="empty" style="padding:10px 0">표시할 값이 없습니다.</div>`; else barChart(pc, bars.slice(-16), m.unit); }
+}
+// 월 값 막대 + 전년 대비 증가율 선(오른쪽 축). 최근 60개월, 마지막 달은 강조색
+function yoyBarChart(el, all, unit){
+  const pts = all.slice(-60), byP = new Map(all.map(x => [x.p, x.v]));
+  const yoy = pts.map(x => { const [y, mo] = x.p.split('-'); const pv = byP.get(`${+y - 1}-${mo}`); return pv > 0 ? (x.v / pv - 1) * 100 : null; });
+  const W = Math.max(300, el.clientWidth || 600), H = 268, mg = {l: 52, r: 48, t: 12, b: 26};
+  const vmax = Math.max(...pts.map(x => x.v)), sc = axisScale(unit, vmax), vt = niceTicks(0, vmax / sc.div, 4);
+  const yv = yoy.filter(v => v != null), yt = yv.length ? niceTicks(Math.min(0, ...yv), Math.max(0, ...yv), 4) : null;
+  const iw = W - mg.l - mg.r, ih = H - mg.t - mg.b, bw = iw / pts.length;
+  const X = i => mg.l + bw * (i + .5), Y = v => mg.t + ih - (v / sc.div - vt.lo) / (vt.hi - vt.lo) * ih;
+  const Y2 = v => mg.t + ih - (v - yt.lo) / (yt.hi - yt.lo) * ih;
+  let g = '';
+  for (const t of vt.ticks) g += `<line x1="${mg.l}" x2="${W - mg.r}" y1="${Y(t * sc.div)}" y2="${Y(t * sc.div)}" stroke="var(--line)"/><text x="${mg.l - 6}" y="${Y(t * sc.div) + 3.5}" text-anchor="end">${fmtNum(t)}</text>`;
+  if (yt){ for (const t of yt.ticks) g += `<text x="${W - mg.r + 6}" y="${Y2(t) + 3.5}">${fmtNum(t, 0)}%</text>`; g += `<line x1="${mg.l}" x2="${W - mg.r}" y1="${Y2(0)}" y2="${Y2(0)}" stroke="var(--ink-2)" stroke-dasharray="4 3"/>`; }
+  const bars = pts.map((x, i) => `<rect x="${(X(i) - bw * .36).toFixed(1)}" width="${(bw * .72).toFixed(1)}" y="${Y(x.v).toFixed(1)}" height="${(Y(0) - Y(x.v)).toFixed(1)}" fill="${i === pts.length - 1 ? 'var(--accent)' : 'var(--line-2)'}" rx="1"/>`).join('');
+  let d = '', dots = '';
+  yoy.forEach((v, i) => { if (v == null) return; d += `${d && yoy[i - 1] != null ? 'L' : 'M'}${X(i).toFixed(1)},${Y2(v).toFixed(1)}`; dots += `<circle cx="${X(i).toFixed(1)}" cy="${Y2(v).toFixed(1)}" r="${i === pts.length - 1 ? 3.5 : 2.2}" fill="var(--surface)" stroke="var(--s1)" stroke-width="1.6"/>`; });
+  const labs = pts.map((x, i) => /-(01|07)$/.test(x.p) ? `<text x="${X(i)}" y="${H - 8}" text-anchor="middle">${showP(x.p)}</text>` : '').join('');
+  const hit = pts.map((x, i) => `<rect data-i="${i}" x="${(X(i) - bw / 2).toFixed(1)}" width="${bw.toFixed(1)}" y="${mg.t}" height="${ih}" fill="transparent"/>`).join('');
+  const last = pts[pts.length - 1], ly = yoy[yoy.length - 1];
+  el.innerHTML = `<div class="legend"><span><i style="background:var(--line-2);height:9px;width:12px;border-radius:1px"></i>월 값(${esc(sc.unit)}, 왼쪽)</span><span><i style="background:var(--s1)"></i>전년 대비(%, 오른쪽)</span><span style="margin-left:auto;color:var(--ink)">${esc(showP(last.p))} <b class="num">${esc(fmtV(last.v, unit))}</b>${ly != null ? ` <b class="num ${dirCls(ly)}">${ly >= 0 ? '+' : ''}${fmtNum(ly, 1)}%</b>` : ''}</span></div>
+    <svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="월 값과 전년 대비 증가율">${g}${bars}${d ? `<path d="${d}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/>` : ''}${dots}${labs}${hit}</svg><div class="tip" hidden></div>`;
+  const svg = el.querySelector('svg'), tip = el.querySelector('.tip');
+  svg.querySelectorAll('rect[data-i]').forEach(r => {
+    const show = () => { const i = +r.dataset.i, x = pts[i], b = svg.getBoundingClientRect();
+      tip.innerHTML = `<div class="t">${esc(showP(x.p))}</div><div class="r"><span>값</span><b class="num">${esc(fmtV(x.v, unit))}</b></div>${yoy[i] != null ? `<div class="r"><span>전년 대비</span><b class="num ${dirCls(yoy[i])}">${yoy[i] >= 0 ? '+' : ''}${fmtNum(yoy[i], 1)}%</b></div>` : ''}`;
+      tip.hidden = false; const px = X(i) * b.width / W, tw = tip.offsetWidth; tip.style.left = Math.max(0, Math.min(b.width - tw, px + 8)) + 'px'; tip.style.top = '28px'; };
+    r.addEventListener('pointerenter', show); r.addEventListener('pointerdown', show); r.addEventListener('pointerleave', () => tip.hidden = true);
+  });
 }
 function lineChart(el, series, unit, opt = {}){
   const step = opt.step !== false; // 추정은 계단(다음 수정까지 유지), 실적·시세는 점을 잇는 선
